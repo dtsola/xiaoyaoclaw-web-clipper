@@ -1,0 +1,12 @@
+# 测试产物
+tmp/
+*.png
+!assets/readme/community-qr.png
+
+# Python 缓存
+__pycache__/
+*.pyc
+
+# 运行时产物（剪藏输出/去重索引）
+.clips-index.json
+knowledge/

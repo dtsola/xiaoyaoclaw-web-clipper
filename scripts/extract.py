@@ -126,20 +126,30 @@ def _extract_meta(soup: BeautifulSoup, html: str, url: str) -> dict:
             meta["title"] = t.get_text(strip=True)
 
     # ---- 作者 ----
-    for sel in ['meta[name="author"]', 'meta[property="article:author"]',
-                '[rel="author"]', ".author", ".post-author", ".byline"]:
-        el = soup.select_one(sel)
-        if el:
-            if el.name == "meta":
-                val = el.get("content", "").strip()
-            else:
+    # 公众号优先：公众号名在 #js_name / .rich_media_meta_nickname
+    if urlparse(url).netloc.endswith("mp.weixin.qq.com"):
+        for sel in ["#js_name", ".rich_media_meta_nickname"]:
+            el = soup.select_one(sel)
+            if el:
                 val = el.get_text(strip=True)
-            if val:
-                # 清理常见前缀：作者：/作者 / By / by
-                val = re.sub(r"^(作者[:：]?|作者|By[:：]?\s*|by[:：]?\s*)", "", val).strip()
                 if val:
                     meta["author"] = val
                     break
+    if not meta["author"]:
+        for sel in ['meta[name="author"]', 'meta[property="article:author"]',
+                    '[rel="author"]', ".author", ".post-author", ".byline"]:
+            el = soup.select_one(sel)
+            if el:
+                if el.name == "meta":
+                    val = el.get("content", "").strip()
+                else:
+                    val = el.get_text(strip=True)
+                if val:
+                    # 清理常见前缀：作者：/作者 / By / by
+                    val = re.sub(r"^(作者[:：]?|作者|By[:：]?\s*|by[:：]?\s*)", "", val).strip()
+                    if val:
+                        meta["author"] = val
+                        break
 
     # ---- 日期 ----
     for sel in ['meta[property="article:published_time"]',

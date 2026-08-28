@@ -107,5 +107,6 @@ scripts/
 | 404 | 不存在的期刊号 | ✅ 失败入汇总，不入索引 |
 | 反爬 | CSDN（521）/ 知乎（403） | ✅ 如实报错 |
 | 作者清理 | 阮一峰「作者：」前缀 | ✅ 修复后为「阮一峰」 |
+| **微信公众号** | WorkBuddy 文章（指挥官提供） | ✅ readability 提取成功，标题/正文/文件名全对；**修复 bug：作者误取 meta[name=author] 宣传语 → 改为公众号优先 #js_name，正确为「腾讯WorkBuddy」**（commit cfa6b57） |
 | trafilatura 独立 | 287 期 | ✅ score 10206 |
 | 知识库闭环 | 407 期 → build_index | ✅ data_structure.md 收录 |

@@ -1,7 +1,7 @@
 ---
 type: project
 status: active
-progress: 70
+progress: 90
 created: 2026-08-28
 updated: 2026-08-28
 docs:
@@ -20,9 +20,7 @@ docs:
 
 ## 当前状态
 
-开发 + 测试完成（70%）：核心脚本双引擎 + 批量去重 + frontmatter，真实 URL 全链路测试通过（中文博客/批量/去重/404/反爬/知识库闭环），SKILL.md + README 中英 + DESIGN + LICENSE + hero.svg（视觉验证通过）+ community-qr 全部就绪。
-
-下一步：git init + GitHub 建仓发布 → 全局技能同步 → 六件套 README 互链 → ClawHub 提交（等指挥官确认公开）。
+全流程完成（90%）：开发 + 测试（含公众号实测 + bug 修复）+ GitHub 发布 + 全局技能同步 + 六件套 README 互链 + **ClawHub v1.0.0 提交 pending-publication（等指挥官确认公开）**。
 
 ## 进度日志
 
@@ -31,7 +29,9 @@ docs:
 - 2026-08-28 17:24-17:46：核心开发——scripts/extract.py（双引擎降级链 + 元数据 + 编码）+ scripts/clip.py（单/批量/去重/frontmatter/依赖检查）；环境坑：chardet 7.x DLL 崩溃（降级<6）、regex 安装损坏（清理重装）、PowerShell GBK 打印 emoji 失败（stdout reconfigure UTF-8）
 - 2026-08-28 17:46-18:15：测试——阮一峰周刊单剪/批量 3 条全成功、去重跳过、404/521/403 如实报错、作者前缀清理、trafilatura 独立验证、knowledge/clippings 闭环建索引（data_structure.md 收录）✅
 - 2026-08-28 18:15-18:20：文档——SKILL.md（对齐姊妹项目格式）+ README.md/README.en.md（六件套同构）+ docs/DESIGN.md（引擎降级链/元数据规则/测试记录）+ LICENSE + assets（hero.svg 自绘 + community-qr 复制）；hero.svg 经 Chrome 渲染 + PIL 像素验证 + recognize.ps1 AI 视觉三重校验通过
-- 2026-08-28 18:20：测试产物清理（tmp 截图/脚本/测试输出），PROGRESS 更新至 70%
+- 2026-08-28 18:36-18:40：**公众号实测（指挥官提供 WorkBuddy 文章）**——剪藏成功，发现并修复 bug：作者误取 meta[name=author] 宣传语 → 公众号优先 #js_name（正确「腾讯WorkBuddy」，commit cfa6b57）；全局技能同步 MATCH
+- 2026-08-28 18:43：**GitHub 发布** dtsola/xiaoyaoclaw-web-clipper（public/main/MIT/8 topics，commit 9dcbb4e）；全局技能同步（SKILL.md + scripts，哈希 MATCH）；六件套 10 个 README 互链 push（initializer c356311 / memory-distill 406239d / tracker 72f8432 / kb-retriever b1b4bc4 / auditor c1d6dbf）
+- 2026-08-28 18:43：**ClawHub v1.0.0 提交** pending-publication（versionId k972bvj2yzkga0rcte0s2hfd4s8db4bs，10 文件，等指挥官确认公开）
 
 ## 文档索引
 

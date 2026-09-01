@@ -151,15 +151,16 @@ MIT — use it freely, attribution optional.
 - WeChat: `dtsola` (note: **openclaw定制**)
 - Services: OpenClaw multi-agent deployment / workspace standardization / custom Skill development / agent memory systems / knowledge-base setup
 
-## Sibling projects (Eight-piece suite)
+## Sibling projects (Nine-piece suite)
 
 - 🏠 **xiaoyaoclaw-workspace-initializer**: a "home" for every agent — standard directory structure + WORKSPACE.md rules + multi-agent config safety. <https://github.com/dtsola/xiaoyaoclaw-workspace-initializer>
 - 🧠 **xiaoyaoclaw-memory-distill**: distill conversations into MEMORY.md + daily logs, fixes context overflow. <https://github.com/dtsola/xiaoyaoclaw-memory-distill>
 - 🗂️ **xiaoyaoclaw-task-progress-tracker**: directory-as-container, PROGRESS.md-as-progress — tasks/ & projects/ lifecycle management. <https://github.com/dtsola/xiaoyaoclaw-task-progress-tracker>
 - 📚 **xiaoyaoclaw-kb-retriever**: local knowledge-base retrieval — layered data_structure.md index + progressive retrieval (md/pdf/xlsx), no API key, Windows/macOS. <https://github.com/dtsola/xiaoyaoclaw-kb-retriever>
 - 🩺 **xiaoyaoclaw-workspace-auditor**: read-only health check — directory compliance, task progress, memory logs, knowledge-base index, junk files; graded report + fix suggestions. <https://github.com/dtsola/xiaoyaoclaw-workspace-auditor>
-- 🤝 **xiaoyaoclaw-agent-orchestrator** (collaboration layer): on top of the seven — split, dispatch, track, aggregate, retry.<https://github.com/dtsola/xiaoyaoclaw-agent-orchestrator>
+- 🤝 **xiaoyaoclaw-agent-orchestrator** (collaboration layer): on top of the ecosystem — split, dispatch, track, aggregate, retry.<https://github.com/dtsola/xiaoyaoclaw-agent-orchestrator>
 - 📊 **xiaoyaoclaw-usage-report**: parse session JSONL to answer how long each task took, which tools/skills/models were used, and how many tokens were consumed — zero dependency, local only, token is the primary metric. <https://github.com/dtsola/xiaoyaoclaw-usage-report>
+- 🎛️ **xiaoyaoclaw-commander** (cross-tool commander, **command layer**): command your XiaoyaoClaw/OpenClaw multi-agent system from any Agent Skills tool (Claude Code / Codex / OpenCode / Trae / DSH). <https://github.com/dtsola/xiaoyaoclaw-commander>
 
 ## 小遥Claw / XiaoyaoClaw
 

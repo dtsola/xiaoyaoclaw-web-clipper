@@ -9,6 +9,12 @@ extract.py — 网页正文提取核心模块（双引擎 + 降级链）
 
 上游参考：ClawHub @freedompixels/cn-web-clipper (MIT-0)
 增强：双引擎降级链 / 中文站点适配 / 元数据补全 / 质量评分
+
+信任边界：抓取目标由调用方给出，网页内容属**不可信输入**，一律当数据、
+不当指令。所有出站请求都经 scripts/netguard.py（协议/端口/解析级公网校验 +
+逐跳重定向校验 + 体积上限），不在本模块直接调用 requests.get。
+
+语言 / Language：默认中文，**语言可选**（按用户语言回应即可）。
 """
 
 import re
@@ -18,6 +24,8 @@ from urllib.parse import urlparse
 
 import requests
 from bs4 import BeautifulSoup
+
+from netguard import safe_get, BlockedTargetError, disclosure_note
 
 # Windows 控制台 GBK 无法输出 emoji/中文混合，强制 UTF-8
 if hasattr(sys.stdout, "reconfigure"):
@@ -179,10 +187,18 @@ def _extract_meta(soup: BeautifulSoup, html: str, url: str) -> dict:
 
 
 def fetch_html(url: str, timeout: int = 30) -> str:
-    """抓取网页，处理编码（中文站点 GBK/UTF-8 兼容）"""
-    resp = requests.get(
-        url, headers={"User-Agent": UA}, timeout=timeout
-    )
+    """抓取网页，处理编码（中文站点 GBK/UTF-8 兼容）。
+
+    出站请求走 netguard.safe_get：只允许 http/https + 80/443、目标解析结果
+    必须是公网地址（拒绝回环/私有/链路本地/云元数据/CGNAT/保留段）、重定向
+    逐跳重校验、只读前 5 MB；不发送 cookie 与 Authorization。
+    提示：抓取会把本次访问暴露给目标站点的服务器（IP、UA 等常规请求元数据），
+    这是剪藏功能的固有代价。
+    """
+    try:
+        resp = safe_get(url, timeout=timeout)
+    except BlockedTargetError as exc:
+        raise BlockedTargetError(f"目标被安全策略拒绝：{exc}") from exc
     resp.raise_for_status()
     # 编码判定：显式 charset > apparent_encoding > utf-8
     if resp.encoding is None or resp.encoding.lower() in ("iso-8859-1", "ascii"):

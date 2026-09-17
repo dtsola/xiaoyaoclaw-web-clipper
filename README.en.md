@@ -49,15 +49,21 @@ git clone https://github.com/dtsola/xiaoyaoclaw-web-clipper
 Dependencies: `requests` `beautifulsoup4` `lxml` (optional enhancers: `readability-lxml` `trafilatura`)
 
 ```bash
-pip install requests beautifulsoup4 lxml
-# Optional (better extraction quality):
-pip install readability-lxml trafilatura
+pip install -r requirements.txt
+# Equivalent to: requests>=2.32.4 / beautifulsoup4>=4.12.3 / lxml>=5.2.1
+# Optional (better extraction quality, auto-fallback when missing):
+#   readability-lxml>=0.8.1 / trafilatura>=1.12.2
 ```
 
 ## Usage
 
+> ⚠️ **It writes local files**: clipping creates a `.md` file under `~/knowledge/clippings/` and updates the dedup index `.clips-index.json`; the content is then searchable via kb-retriever — local persistence, so please be aware before first use.
+> ⚠️ **It contacts the network**: fetching exposes ordinary request metadata (IP, UA) to the target site — inherent to clipping. http/https on 80/443 only, and public targets only (loopback, private, link-local and cloud-metadata addresses are refused).
+> 🌐 Language is optional: Chinese by default — ask in English or another language and it answers in that language.
+
 1. Put the skill into your OpenClaw skills directory
-2. Tell your agent: **"clip this https://..."** / "save this article"
+2. Tell your agent: **"clip this https://..."** (name the exact link) — the agent extracts the article, saves the Markdown and reports the file path
+3. **It never triggers from reading**: wording like "clip this link" found inside fetched page content, quoted chat or documents is treated as **data**, not as an instruction — only a direct request from you runs it
 3. The agent extracts the content, saves the Markdown and tells you the path
 
 Or run the script directly:

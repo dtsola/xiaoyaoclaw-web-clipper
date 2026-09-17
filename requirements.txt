@@ -1,0 +1,8 @@
+# 硬依赖（版本下限已钉，避免装到已知有问题的旧版本）
+requests>=2.32.4
+beautifulsoup4>=4.12.3
+lxml>=5.2.1
+
+# 可选增强提取引擎（缺了自动降级到 bs4 容器选择器）
+# readability-lxml>=0.8.1
+# trafilatura>=1.12.2

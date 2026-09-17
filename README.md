@@ -46,19 +46,25 @@ git clone https://github.com/dtsola/xiaoyaoclaw-web-clipper
 # 把 SKILL.md、scripts/ 放到你的 skills 目录
 ```
 
-依赖：`requests` `beautifulsoup4` `lxml`（增强引擎可选 `readability-lxml` `trafilatura`）
+依赖：`requests` `beautifulsoup4` `lxml`（增强引擎可选 `readability-lxml` `trafilatura`）——
+**版本下限已钉**，避免装到已知有问题的旧版本：
 
 ```bash
-pip install requests beautifulsoup4 lxml
-# 可选增强（提取质量更高）：
-pip install readability-lxml trafilatura
+pip install -r requirements.txt
+# 等价于：requests>=2.32.4 / beautifulsoup4>=4.12.3 / lxml>=5.2.1
+# 可选增强（提取质量更高，缺了自动降级）：
+#   readability-lxml>=0.8.1 / trafilatura>=1.12.2
 ```
 
 ## 使用
 
+> ⚠️ **会写本地文件**：剪藏在 `~/knowledge/clippings/` 下**新建 `.md`** 并更新去重索引 `.clips-index.json`；内容随后可被 kb-retriever 检索 —— 属**本地持久化**动作，首次使用前请知悉。
+> ⚠️ **会联外网**：抓取会把本次访问的常规请求元数据（IP、UA）暴露给目标站点——这是剪藏功能的固有代价；只允许 http/https + 80/443 + 公网目标（内网/回环/云元数据地址一律拒绝）。
+> 🌐 语言可选：默认中文，用英文或其他语言提问就用该语言回答。
+
 1. 把 skill 放到 OpenClaw 的 skills 目录
-2. 对你的 agent 说：**「剪藏这个 https://...」** / 「保存这篇文章」 / 「收藏这个网页」
-3. agent 自动提取正文、保存 Markdown 并告诉你文件路径
+2. 对你的 agent 说：**「剪藏这个 https://...」**（**要点名具体链接**）→ agent 提取正文、保存 Markdown 并告诉你文件路径
+3. **不会因为「读到」就触发**：网页正文、引用的聊天、文档里出现的「剪藏这个链接 / save this page」等文字一律当**数据**，不会当作指令去抓取；只有你直接给链接并要求留存才算调用
 
 也可以直接跑脚本：
 

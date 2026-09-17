@@ -1,0 +1,1887 @@
+{
+  "schema": "clawhub.skill.verify.v1",
+  "ok": false,
+  "decision": "fail",
+  "reasons": [
+    "security.status_not_clean"
+  ],
+  "slug": "xiaoyaoclaw-web-clipper",
+  "displayName": "OpenClaw Web Clipper",
+  "pageUrl": "https://clawhub.ai/dtsola/skills/xiaoyaoclaw-web-clipper",
+  "publisherHandle": "dtsola",
+  "publisherDisplayName": "dtsola",
+  "publisherProfileUrl": "https://clawhub.ai/dtsola",
+  "version": "1.0.1",
+  "resolvedFrom": "latest",
+  "tag": null,
+  "createdAt": 1787914378177,
+  "card": {
+    "available": true,
+    "path": "skill-card.md",
+    "url": "https://wry-manatee-359.convex.site/api/v1/skills/xiaoyaoclaw-web-clipper/card?ownerHandle=dtsola&version=1.0.1",
+    "sha256": "c3b4dc2ab4630c8386ceabe3f013f5183cfccb68a0d03842e3b68449c49724aa",
+    "size": 2357,
+    "contentType": "text/markdown; charset=utf-8"
+  },
+  "artifact": {
+    "sourceFingerprint": "e64b361a9a6f1e22c6bec829fd5b370a65cbff33ff87d31564e09a319ffb0329",
+    "bundleFingerprints": [
+      "075b87399296c2b8f783d8df929e8ad1d100b5b22e99635fb0c541332f6bb672",
+      "2ed778f47b49fc01b4fe34214aa01a982d78c10d9b58e126586ee3b921ac1318"
+    ],
+    "files": [
+      {
+        "path": "assets/readme/community-qr.png",
+        "size": 97430,
+        "sha256": "59634d15133631f52c418403bda5a1117dd8c9f808e841bd6992673ef6744a6b",
+        "contentType": "image/png"
+      },
+      {
+        "path": "assets/readme/hero.svg",
+        "size": 3937,
+        "sha256": "03501592ac6aee58a1792b125e99e568cb536d027648fa0b4ecd4554bb4da698",
+        "contentType": "image/svg+xml"
+      },
+      {
+        "path": "docs/DESIGN.md",
+        "size": 5253,
+        "sha256": "2f38cf356a284741b6c01ebea4c4ebfc31fe04fd69f607e83057379769506c8b",
+        "contentType": "text/markdown"
+      },
+      {
+        "path": "LICENSE",
+        "size": 1063,
+        "sha256": "40ae557ab28d175b3920683fcf9803f6d82117e857cc501080947b4ae097bb4b",
+        "contentType": "application/octet-stream"
+      },
+      {
+        "path": "PROGRESS.md",
+        "size": 3776,
+        "sha256": "9aebcfb8da31576e94516df96bf051447d6322f7b8dcf9047419b33e5026b71e",
+        "contentType": "text/markdown"
+      },
+      {
+        "path": "README.en.md",
+        "size": 8155,
+        "sha256": "3a84e00bd99665e5c52a51b0e7078e04fc54be593aceb3d3178149852b706fe6",
+        "contentType": "text/markdown"
+      },
+      {
+        "path": "README.md",
+        "size": 8380,
+        "sha256": "5fca9b5c7f7ce104ddd6e59413eb6749ec62a7ad957db997b4edbcd3b5b069fa",
+        "contentType": "text/markdown"
+      },
+      {
+        "path": "scripts/clip.py",
+        "size": 8507,
+        "sha256": "7207a5897f6a1e15ca7c549ebed564aaa3671efe47173400ad035a05ba0e2f2c",
+        "contentType": "application/octet-stream"
+      },
+      {
+        "path": "scripts/extract.py",
+        "size": 9531,
+        "sha256": "05ffbd8b746af89dcf5a5c58ae1b517939d1fcd4c599958902de0519b4c3eaa1",
+        "contentType": "application/octet-stream"
+      },
+      {
+        "path": "SKILL.md",
+        "size": 4934,
+        "sha256": "d32ef46561b814e85bab1096dcefcbd491372863bc72c5db856b27000a421e4e",
+        "contentType": "text/markdown"
+      }
+    ]
+  },
+  "provenance": {
+    "source": "unavailable",
+    "reason": "No server-resolved GitHub import provenance is stored for this version."
+  },
+  "security": {
+    "status": "suspicious",
+    "passed": false,
+    "rawStatus": "suspicious",
+    "verdict": "suspicious",
+    "confidence": "medium",
+    "summary": "This web clipper is mostly coherent, but it fetches any supplied URL and saves/indexes the result without enough destination limits or trust boundaries.",
+    "model": null,
+    "checkedAt": 1789557946438,
+    "scannerReports": {
+      "aig": {
+        "version": "2.1.0",
+        "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/main/Schemata/sarif-schema-2.1.0.json",
+        "runs": [
+          {
+            "tool": {
+              "driver": {
+                "name": "aig-skill-scan",
+                "version": "0.2.1",
+                "informationUri": "https://github.com/Tencent/AI-Infra-Guard",
+                "rules": [
+                  {
+                    "id": "T01",
+                    "name": "Skill Instruction Hijacking",
+                    "shortDescription": {
+                      "text": "Alters the agent's current session goals or safety constraints when the skill is loaded"
+                    }
+                  },
+                  {
+                    "id": "T02",
+                    "name": "Agent Memory Poisoning",
+                    "shortDescription": {
+                      "text": "Writes attacker-controlled rules into persistent memory so they continue to affect future sessions"
+                    }
+                  },
+                  {
+                    "id": "T03",
+                    "name": "Remote Payload Retrieval and Execution",
+                    "shortDescription": {
+                      "text": "Fetches code from an external URL, allowing the effective payload to change after skill review"
+                    }
+                  },
+                  {
+                    "id": "T04",
+                    "name": "Embedded Malicious Code",
+                    "shortDescription": {
+                      "text": "Ships malicious scripts inside the skill package and executes them locally when invoked"
+                    }
+                  },
+                  {
+                    "id": "T05",
+                    "name": "Unauthorized Access and Privilege Escalation",
+                    "shortDescription": {
+                      "text": "Breaks least-privilege boundaries by obtaining permissions beyond the task's legitimate needs"
+                    }
+                  },
+                  {
+                    "id": "T06",
+                    "name": "System Persistence",
+                    "shortDescription": {
+                      "text": "Installs cross-session backdoors, hooks, services, or scheduled tasks that survive the skill run"
+                    }
+                  },
+                  {
+                    "id": "T07",
+                    "name": "Tool Hijacking and Spoofing",
+                    "shortDescription": {
+                      "text": "Modifies, wraps, spoofs, or replaces tools so legitimate-looking calls execute attacker logic"
+                    }
+                  },
+                  {
+                    "id": "T08",
+                    "name": "Insecure Dependencies",
+                    "shortDescription": {
+                      "text": "Introduces malicious packages or components through dependency confusion, typosquatting, or unsafe sources"
+                    }
+                  },
+                  {
+                    "id": "T09",
+                    "name": "Insecure Skill Coding Practices",
+                    "shortDescription": {
+                      "text": "Exposes exploitable flaws such as hardcoded secrets, command injection, plaintext sensitive data, or unsafe temp files"
+                    }
+                  },
+                  {
+                    "id": "other",
+                    "name": "Other Risk",
+                    "shortDescription": {
+                      "text": "Security issues not covered by the T01-T09 classification"
+                    }
+                  }
+                ]
+              }
+            },
+            "results": [
+              {
+                "ruleId": "T09",
+                "level": "error",
+                "message": {
+                  "text": "Unrestricted URL Fetching Enables Server-Side Request Forgery"
+                },
+                "locations": [
+                  {
+                    "physicalLocation": {
+                      "artifactLocation": {
+                        "uri": "scripts/extract.py"
+                      },
+                      "region": {
+                        "startLine": 181,
+                        "endLine": 187
+                      }
+                    }
+                  }
+                ],
+                "partialFingerprints": {
+                  "primaryLocationLineHash": "f2e85cde5a9a6e7d"
+                },
+                "properties": {
+                  "description": "<![CDATA[\n## Vulnerability Details\n**File Location**: `scripts/extract.py:181-187`  \n**Vulnerability Type**: Server-Side Request Forgery through unrestricted URL fetching  \n**Risk Level**: High  \n\n### Vulnerable Code\n\n```python\ndef fetch_html(url: str, timeout: int = 30) -> str:\n    \"\"\"Fetch a web page and handle Chinese site encodings.\"\"\"\n    resp = requests.get(\n        url, headers={\"User-Agent\": UA}, timeout=timeout\n    )\n    resp.raise_for_status()\n    # Encoding detection continues below.\n```\n\n### Technical Analysis\n\nThe URL supplied to the clipping interface is passed directly to `requests.get()` without validating its scheme, hostname, resolved IP address, destination port, or redirect targets.\n\nBecause `requests` follows redirects by default, validating only the initial textual URL would also be insufficient. A public endpoint could redirect the request to a loopback, private, link-local, or otherwise restricted destination.\n\nFetching public web pages is necessary for the declared clipping functionality, but access to arbitrary internal network destinations exceeds the minimum privileges required. Potentially dangerous destinations include:\n\n- Loopback services such as `127.0.0.1` or `::1`\n- Private network ranges\n- Link-local services and cloud instance metadata endpoints\n- Internal DNS names\n- Services exposed through unusual HTTP ports\n- Public hosts that redirect to restricted addresses\n\nThe code does not intentionally send local credentials or files to a remote service. The pre-scan network finding therefore does not establish sensitive-data exfiltration. The actual security concern is unrestricted destination access.\n\n### Attack Path\n\n1. An attacker persuades a user or Agent to clip a maliciously selected URL.\n2. The supplied URL points directly to an internal address, or to an attacker-controlled public endpoint that redirects to one.\n3. `fetch_html()` sends the request from the Agent's network environment.\n4. The target returns content that is inaccessible to the external attacker but reachable by the Agent.\n5. The extraction pipeline processes the response.\n6. The resulting content may be printed, returned to the caller, or saved in a local Markdown clipping, exposing information from the restricted service.\n\nDNS rebinding or redirect-based techniques may also be used to bypass incomplete hostname-only filtering.\n\n### Impact Assessment\n\nSuccessful exploitation could allow access to HTTP services reachable from the Agent host, including local administration interfaces, intranet applications, development services, and cloud metadata endpoints.\n\nThe direct capability is network read access through HTTP or HTTPS. The impact depends on the environment and on whether an internal endpoint performs state-changing actions through GET requests. No generic local code execution or privilege escalation is demonstrated by the audited code alone.\n]]>",
+                  "severity": "High"
+                },
+                "fixes": [
+                  {
+                    "description": {
+                      "text": "<![CDATA[\n## Remediation Suggestions\n\n1. Permit only explicitly supported schemes, preferably `http` and `https`.\n2. Reject URLs containing embedded credentials or malformed host components.\n3. Resolve the hostname before connecting and reject every address that is:\n   - Loopback\n   - Private\n   - Link-local\n   - Multicast\n   - Reserved\n   - Unspecified\n4. Disable automatic redirects and validate each redirect destination before following it.\n5. Protect against DNS rebinding by ensuring the validated address is the address used for the connection, or by revalidating the actual peer address.\n6. Consider blocking nonstandard destination ports unless explicitly approved.\n7. Apply response-size and content-type limits to reduce resource-exhaustion risk.\n8. Require explicit user confirmation before accessing non-public or locally resolved destinations.\n9. Where feasible, perform retrieval through an outbound proxy with network-level restrictions.\n10. Add tests covering IPv4, IPv6, integer/encoded IP representations, internal DNS names, redirect chains, and public-to-private redirects.\n]]>"
+                    }
+                  }
+                ]
+              },
+              {
+                "ruleId": "other",
+                "level": "warning",
+                "message": {
+                  "text": "Untrusted Web Content Can Poison Downstream AI Retrieval Context"
+                },
+                "locations": [
+                  {
+                    "physicalLocation": {
+                      "artifactLocation": {
+                        "uri": "scripts/clip.py"
+                      },
+                      "region": {
+                        "startLine": 147,
+                        "endLine": 154
+                      }
+                    }
+                  }
+                ],
+                "partialFingerprints": {
+                  "primaryLocationLineHash": "ae4b1a56899c4807"
+                },
+                "properties": {
+                  "description": "<![CDATA[\n## Vulnerability Details\n**File Location**: `scripts/clip.py:147-154`; related indexing workflow in `SKILL.md:55-61`  \n**Vulnerability Type**: Indirect prompt injection through stored web content  \n**Risk Level**: Medium  \n\n### Vulnerable Code\n\n```python\nmd = f\"\"\"---\ntitle: \"{title.replace(chr(34), '')}\"\nsource: \"{data.get('source_url', '')}\"\ndomain: \"{data.get('domain', '')}\"\nauthor: \"{data.get('author', '')}\"\ndate: \"{date}\"\nclipped_at: \"{data.get('clipped_at', '')}\"\nengine: \"{data.get('engine', '')}\"\ntags:{tags_str or ' []'}\n---\n\n# {title}\n\n> Original URL: [{data.get('source_url', '')}]({data.get('source_url', '')})\n> Clipping time: {data.get('clipped_at', '')[:10]}\n> Source site: {data.get('domain', '')}\n\n{data.get('text', '')}\n```\n\nThe declared workflow then directs users or Agents to index the clipping:\n\n```text\npython <kb-retriever>/scripts/build_index.py <knowledge-root>\n```\n\n### Technical Analysis\n\nThe extracted body of an arbitrary web page is copied verbatim into a Markdown file. The Skill explicitly positions these files as input to a knowledge-base retriever used by an AI Agent.\n\nWeb content is attacker-controlled data. It can include text framed as system instructions, tool-use requests, requests to disclose secrets, or directives to ignore previous instructions. The clipping process does not mark such content as untrusted, separate instructions from data, or add downstream handling requirements.\n\nThe Markdown write itself does not execute the embedded text. Exploitation occurs later if a retriever includes the clipping in an Agent context and the consuming Agent treats content from the document as authoritative instructions.\n\n### Attack Path\n\n1. An attacker publishes a page containing useful-looking content and hidden or visible prompt-injection instructions.\n2. The attacker causes or persuades a user to clip that page.\n3. The extraction engine preserves the malicious instructions as ordinary page text.\n4. `save_markdown()` writes the text into the local clipping directory.\n5. The user or Agent follows the documented workflow and indexes the clipping.\n6. A later query retrieves the poisoned passage into an AI Agent's context.\n7. If the consuming Agent fails to maintain a strict instruction/data boundary, it may follow the embedded directions.\n8. Depending on the downstream Agent's tools and permissions, the injected directions could influence answers, request sensitive information, or induce unintended tool calls.\n\n### Impact Assessment\n\nThe clipping process itself gains no additional operating-system privilege. The affected scope is the behavior of downstream AI systems that consume the indexed content.\n\nPotential consequences include manipulated responses, retrieval poisoning, attempted secret disclosure, or unintended tool activity. The maximum practical impact is bounded by the tools, credentials, safety controls, and confirmation requirements of the downstream Agent.\n]]>",
+                  "severity": "Medium"
+                },
+                "fixes": [
+                  {
+                    "description": {
+                      "text": "<![CDATA[\n## Remediation Suggestions\n\n1. Treat all extracted page content as untrusted external data.\n2. Add explicit provenance and trust metadata to every clipping, such as `trust: untrusted-web-content`.\n3. Place extracted content inside clearly delimited data sections and instruct downstream consumers never to interpret source text as Agent instructions.\n4. Update the Skill and retriever guidance to require instruction/data separation during retrieval.\n5. Ensure downstream prompts state that commands, policies, tool requests, and role changes found inside retrieved documents must be ignored.\n6. Preserve the original source URL and clipping timestamp so suspicious content can be traced.\n7. Consider detecting and flagging common prompt-injection patterns, while recognizing that pattern matching is only a supplementary defense.\n8. Require confirmation before a downstream Agent performs consequential tool calls based solely on retrieved content.\n9. Apply least privilege to downstream retrieval Agents and prevent retrieved documents from directly authorizing access to files, credentials, or network tools.\n]]>"
+                    }
+                  }
+                ]
+              },
+              {
+                "ruleId": "T08",
+                "level": "note",
+                "message": {
+                  "text": "Dependency Installation Instructions Use Unpinned Package Versions"
+                },
+                "locations": [
+                  {
+                    "physicalLocation": {
+                      "artifactLocation": {
+                        "uri": "SKILL.md"
+                      },
+                      "region": {
+                        "startLine": 109,
+                        "endLine": 109
+                      }
+                    }
+                  }
+                ],
+                "partialFingerprints": {
+                  "primaryLocationLineHash": "3daefea596926fc3"
+                },
+                "properties": {
+                  "description": "<![CDATA[\n## Vulnerability Details\n**File Location**: `SKILL.md:109`; also documented in `README.en.md:52-54,85`  \n**Vulnerability Type**: Unpinned third-party dependencies  \n**Risk Level**: Low  \n\n### Vulnerable Code\n\n```text\nOn ModuleNotFoundError:\npip install requests beautifulsoup4 lxml\n\nOptional enhancement engines:\npip install readability-lxml\npip install trafilatura\n```\n\nThe quick-start documentation also recommends:\n\n```bash\npip install requests beautifulsoup4 lxml readability-lxml trafilatura\n```\n\n### Technical Analysis\n\nThe project recommends installing dependencies by package name without exact versions, integrity hashes, or a reviewed lock file. Consequently, two installations performed at different times can receive materially different code.\n\nThis does not prove that any currently named package is malicious. The risk arises because future releases, compromised maintainer accounts, dependency-chain compromises, or incompatible updates could alter installation or runtime behavior after the Skill has been reviewed.\n\nThe scripts only print installation guidance and do not invoke `pip` automatically. Exploitation therefore requires a user or Agent to follow the documented installation instructions.\n\n### Attack Path\n\n1. A required or transitive dependency publishes a compromised or vulnerable release.\n2. A user or Agent follows the Skill's unpinned `pip install` instructions.\n3. The package resolver selects the affected release.\n4. Third-party package code executes during installation, import, or clipping operations.\n5. The malicious or vulnerable dependency operates with the privileges of the user running the installation or Skill.\n\n### Impact Assessment\n\nA compromised Python dependency can execute code with the installing user's privileges. Depending on that user's environment, this could expose files and credentials, modify the Python environment, or perform network operations.\n\nNo malicious dependency, dependency-confusion namespace, or unsafe nonstandard package source was identified in the audited project. The finding concerns reproducibility and supply-chain hardening rather than evidence of an active compromise.\n]]>",
+                  "severity": "Low"
+                },
+                "fixes": [
+                  {
+                    "description": {
+                      "text": "<![CDATA[\n## Remediation Suggestions\n\n1. Provide a reviewed requirements or lock file with exact dependency versions.\n2. Include cryptographic hashes and recommend installation with hash verification.\n3. Separate mandatory dependencies from optional extraction engines.\n4. Install dependencies in an isolated virtual environment rather than the system Python environment.\n5. Use a trusted package index and avoid adding unreviewed extra indexes.\n6. Add automated dependency vulnerability and update monitoring.\n7. Review transitive dependencies before updating pinned versions.\n8. Document a controlled update process so new versions are tested before release.\n9. Align `SKILL.md`, both README files, and any release automation with the same pinned dependency set.\n]]>"
+                    }
+                  }
+                ]
+              }
+            ],
+            "properties": {
+              "securityScore": 25,
+              "primaryLanguage": "Markdown",
+              "llm": "gpt-5.6",
+              "startTime": 1789557774.8751137,
+              "endTime": 1789557903.5429962
+            }
+          }
+        ]
+      },
+      "skillspector": {
+        "skill": {
+          "name": "xiaoyaoclaw-web-clipper",
+          "source": "/tmp/clawhub-codex-scan-v57e22dxqw7pny5fb3w5t8rgch8egac2-6aiFo3/clawscan-skillspector-128456469/artifact",
+          "scanned_at": "2026-09-16T11:22:29.547179+00:00"
+        },
+        "risk_assessment": {
+          "score": 94,
+          "severity": "CRITICAL",
+          "recommendation": "DO_NOT_INSTALL",
+          "max_issue_severity": "HIGH"
+        },
+        "components": [
+          {
+            "path": "LICENSE",
+            "type": "other",
+            "lines": 21,
+            "executable": false,
+            "size_bytes": 1063,
+            "source_url": null,
+            "source_identity": null,
+            "source_digest": null
+          },
+          {
+            "path": "PROGRESS.md",
+            "type": "markdown",
+            "lines": 51,
+            "executable": false,
+            "size_bytes": 3776,
+            "source_url": null,
+            "source_identity": null,
+            "source_digest": null
+          },
+          {
+            "path": "README.en.md",
+            "type": "markdown",
+            "lines": 184,
+            "executable": false,
+            "size_bytes": 8155,
+            "source_url": null,
+            "source_identity": null,
+            "source_digest": null
+          },
+          {
+            "path": "README.md",
+            "type": "markdown",
+            "lines": 186,
+            "executable": false,
+            "size_bytes": 8380,
+            "source_url": null,
+            "source_identity": null,
+            "source_digest": null
+          },
+          {
+            "path": "SKILL.md",
+            "type": "markdown",
+            "lines": 117,
+            "executable": false,
+            "size_bytes": 4934,
+            "source_url": null,
+            "source_identity": null,
+            "source_digest": null
+          },
+          {
+            "path": "assets/readme/community-qr.png",
+            "type": "other",
+            "lines": 2367,
+            "executable": false,
+            "size_bytes": 97430,
+            "source_url": null,
+            "source_identity": null,
+            "source_digest": null
+          },
+          {
+            "path": "assets/readme/hero.svg",
+            "type": "other",
+            "lines": 54,
+            "executable": false,
+            "size_bytes": 3937,
+            "source_url": null,
+            "source_identity": null,
+            "source_digest": null
+          },
+          {
+            "path": "docs/DESIGN.md",
+            "type": "markdown",
+            "lines": 112,
+            "executable": false,
+            "size_bytes": 5253,
+            "source_url": null,
+            "source_identity": null,
+            "source_digest": null
+          },
+          {
+            "path": "scripts/clip.py",
+            "type": "python",
+            "lines": 271,
+            "executable": true,
+            "size_bytes": 8507,
+            "source_url": null,
+            "source_identity": null,
+            "source_digest": null
+          },
+          {
+            "path": "scripts/extract.py",
+            "type": "python",
+            "lines": 285,
+            "executable": true,
+            "size_bytes": 9531,
+            "source_url": null,
+            "source_identity": null,
+            "source_digest": null
+          }
+        ],
+        "structured_summaries": [],
+        "issues": [
+          {
+            "id": "P2",
+            "finding_id": "finding-6cfdba71a015422886c33ef8888cd27f",
+            "category": "Prompt Injection",
+            "pattern": "Hidden Instructions",
+            "severity": "HIGH",
+            "confidence": 0.7,
+            "location": {
+              "file": "assets/readme/hero.svg",
+              "start_line": 7,
+              "end_line": null
+            },
+            "finding": "<!-- left: title block -->\n  <g id=\"title-block\" transform=\"translate(56 40)\">\n    <text x=\"0\" y=\"44\" font-family=\"ui-monospace, SFMono-Regular, Menlo, monospace\" font-size=\"20\" letter-spacing=\"4\" fil",
+            "explanation": "Hidden instructions were detected in comments or invisible text. These could contain malicious directives. Manual review is recommended.",
+            "remediation": "Audit all comments and invisible characters. Remove any instructions that direct the agent to perform unauthorized actions. Use plain, reviewable content.",
+            "code_snippet": "\n  <rect width=\"1200\" height=\"360\" rx=\"20\" fill=\"#0d1117\"/>\n\n  <!-- left: title block -->\n  <g id=\"title-block\" transform=\"translate(56 40)\">\n    <text x=\"0\" y=\"44\" font-family=\"ui-monospace, SFMono-Regular, Menlo, monospace\" font-size=\"20\" letter-spacing=\"4\" fill=\"#8b949e\">OPENCLAW · AGENT SKILL</text>\n",
+            "intent": null,
+            "tags": [
+              "Prompt Injection",
+              "llm-unconfirmed"
+            ],
+            "evidence": {},
+            "match_fingerprint": "0570cae6589cf5e87473dce2bd3b5ffa8f0bb7f88390f9550a665b0ba430bbee",
+            "occurrences": [
+              {
+                "file": "assets/readme/hero.svg",
+                "start_line": 7,
+                "end_line": null
+              }
+            ]
+          },
+          {
+            "id": "SQP-1",
+            "finding_id": "finding-0f63a1913a7f44a1af6d9599169102b6",
+            "category": null,
+            "pattern": null,
+            "severity": "MEDIUM",
+            "confidence": 0.91,
+            "location": {
+              "file": "README.en.md",
+              "start_line": 60,
+              "end_line": 60
+            },
+            "finding": null,
+            "explanation": "The README suggests very broad natural-language activation phrases like 'clip this https://...' and 'save this article' without any explicit invocation prefix, confirmation step, or scope constraint. In agent ecosystems that auto-route on fuzzy matching, such phrasing can cause unintended skill activation from normal conversation text or quoted content, leading the agent to fetch and persist attacker-supplied URLs or sensitive internal links.",
+            "remediation": "Document a strict invocation format such as a namespaced command or slash-command (for example, '/web-clipper <URL>') and require explicit user intent before execution. Add guidance to ignore quoted text/page content as triggers and require URL validation plus confirmation for batch operations or non-http(s) targets.",
+            "code_snippet": null,
+            "intent": null,
+            "tags": [],
+            "evidence": {},
+            "match_fingerprint": null,
+            "occurrences": [
+              {
+                "file": "README.en.md",
+                "start_line": 60,
+                "end_line": 60
+              }
+            ]
+          },
+          {
+            "id": "SQP-1",
+            "finding_id": "finding-2ff2c561c01d43898e2069950a712b7f",
+            "category": null,
+            "pattern": null,
+            "severity": "MEDIUM",
+            "confidence": 0.88,
+            "location": {
+              "file": "README.en.md",
+              "start_line": 90,
+              "end_line": 90
+            },
+            "finding": null,
+            "explanation": "The quick-start example tells users to say 'clip https://example.com/article', which is still a broad trigger pattern if the surrounding agent platform performs heuristic skill invocation. An attacker could embed similar text in retrieved content, chats, or documents to induce the clipping skill to run unexpectedly, causing unreviewed network access and local file creation in the knowledge store.",
+            "remediation": "Replace broad conversational examples with an explicit, unambiguous invocation contract and state that the skill must only run on direct user commands. Recommend platform-side allowlisting of trigger patterns, mandatory confirmation before fetching, and clear separation between user instructions and untrusted page/document content.",
+            "code_snippet": null,
+            "intent": null,
+            "tags": [],
+            "evidence": {},
+            "match_fingerprint": null,
+            "occurrences": [
+              {
+                "file": "README.en.md",
+                "start_line": 90,
+                "end_line": 90
+              }
+            ]
+          },
+          {
+            "id": "SQP-1",
+            "finding_id": "finding-506ae679110a4b5e964287b4c8d5cae5",
+            "category": null,
+            "pattern": null,
+            "severity": "MEDIUM",
+            "confidence": 0.92,
+            "location": {
+              "file": "README.md",
+              "start_line": 60,
+              "end_line": 60
+            },
+            "finding": null,
+            "explanation": "The README suggests very broad natural-language triggers such as '保存这篇文章' and '收藏这个网页', which can overlap with common conversation and increase the chance of unintended activation by an agent. In a skill that performs network fetches and local file writes, accidental invocation can cause unreviewed content to be downloaded and persisted into the knowledge directory, polluting the local corpus or creating confusing side effects.",
+            "remediation": "Use narrower, namespaced invocation phrases such as '使用 web-clipper 剪藏 URL: <...>' and explicitly require a URL argument before execution. Add a confirmation step for file-writing actions, and document the exact write destination and behavior so users understand when the skill will save content locally.",
+            "code_snippet": null,
+            "intent": null,
+            "tags": [],
+            "evidence": {},
+            "match_fingerprint": null,
+            "occurrences": [
+              {
+                "file": "README.md",
+                "start_line": 60,
+                "end_line": 60
+              }
+            ]
+          },
+          {
+            "id": "LP3",
+            "finding_id": "finding-60267754662d49cca18065393ec19c83",
+            "category": "MCP Least Privilege",
+            "pattern": null,
+            "severity": "MEDIUM",
+            "confidence": 0.89,
+            "location": {
+              "file": "SKILL.md",
+              "start_line": 1,
+              "end_line": null
+            },
+            "finding": null,
+            "explanation": "The skill describes capabilities that include fetching arbitrary URLs, writing Markdown and an index file to disk, and using environment-controlled output paths, but it does not declare any explicit tool scope or permissions. That mismatch weakens review and runtime governance because an agent may perform network and file-write actions without a clear, least-privilege contract, increasing the risk of unintended writes, SSRF-style access to internal endpoints, or unsafe path usage if the implementation is permissive.",
+            "remediation": "Add explicit permission metadata such as allowed-tools/permissions for network access, filesystem writes, and environment-variable use, and constrain them to least privilege. Document and enforce allowed write roots (for example only knowledge/clippings), validate and canonicalize --dir and CLIPPER_OUTPUT_DIR, restrict URL schemes to http/https, and consider denylisting localhost/private-address targets unless explicitly approved by the user.",
+            "code_snippet": null,
+            "intent": null,
+            "tags": [
+              "ASI02"
+            ],
+            "evidence": {},
+            "match_fingerprint": null,
+            "occurrences": [
+              {
+                "file": "SKILL.md",
+                "start_line": 1,
+                "end_line": null
+              }
+            ]
+          },
+          {
+            "id": "SQP-3",
+            "finding_id": "finding-f2e615ef0bc54a64a2e6bbc8eeb3fbef",
+            "category": null,
+            "pattern": null,
+            "severity": "MEDIUM",
+            "confidence": 0.95,
+            "location": {
+              "file": "scripts/clip.py",
+              "start_line": 4,
+              "end_line": 17
+            },
+            "finding": null,
+            "explanation": "The module docstring, CLI description, help text, and user-facing status messages are all presented in Chinese, with no indication that another language can be selected. This creates a language policy issue under the stated rule because the skill imposes a specific language without user opt-in or documented justification.",
+            "remediation": "Provide bilingual or configurable user-facing text, or explicitly document that the skill is Chinese-only for a justified region-specific use case and require user opt-in.",
+            "code_snippet": null,
+            "intent": null,
+            "tags": [
+              "llm-unconfirmed"
+            ],
+            "evidence": {},
+            "match_fingerprint": null,
+            "occurrences": [
+              {
+                "file": "scripts/clip.py",
+                "start_line": 4,
+                "end_line": 17
+              }
+            ]
+          },
+          {
+            "id": "AST3",
+            "finding_id": "finding-b8fb3d34a15d4a579161b977fd7baf4d",
+            "category": "Dangerous Code Execution",
+            "pattern": "Dynamic import via __import__()",
+            "severity": "MEDIUM",
+            "confidence": 0.75,
+            "location": {
+              "file": "scripts/clip.py",
+              "start_line": 48,
+              "end_line": 48
+            },
+            "finding": "            __import__(mod)",
+            "explanation": "Dynamic __import__() can load arbitrary modules at runtime, bypassing static analysis and potentially importing malicious code.",
+            "remediation": "Use standard import statements instead of __import__(). If dynamic loading is needed, use importlib with an allowlist of permitted modules.",
+            "code_snippet": "    missing = []\n    for mod in (\"requests\", \"bs4\", \"lxml\"):\n        try:\n            __import__(mod)\n        except ImportError:\n            missing.append(mod)\n    # readability / trafilatura 是增强引擎，缺了降级，不算硬依赖",
+            "intent": null,
+            "tags": [
+              "Dangerous Code Execution",
+              "llm-unconfirmed"
+            ],
+            "evidence": {},
+            "match_fingerprint": "8ebe940c80aa054f75b19606011e6a0571cdafdf30b116c675e46be0be248b0e",
+            "occurrences": [
+              {
+                "file": "scripts/clip.py",
+                "start_line": 48,
+                "end_line": 48
+              }
+            ]
+          },
+          {
+            "id": "AST3",
+            "finding_id": "finding-b8fb3d34a15d4a579161b977fd7baf4d",
+            "category": "Dangerous Code Execution",
+            "pattern": "Dynamic import via __import__()",
+            "severity": "MEDIUM",
+            "confidence": 0.75,
+            "location": {
+              "file": "scripts/clip.py",
+              "start_line": 54,
+              "end_line": 54
+            },
+            "finding": "            __import__(mod)",
+            "explanation": "Dynamic __import__() can load arbitrary modules at runtime, bypassing static analysis and potentially importing malicious code.",
+            "remediation": "Use standard import statements instead of __import__(). If dynamic loading is needed, use importlib with an allowlist of permitted modules.",
+            "code_snippet": "    missing = []\n    for mod in (\"requests\", \"bs4\", \"lxml\"):\n        try:\n            __import__(mod)\n        except ImportError:\n            missing.append(mod)\n    # readability / trafilatura 是增强引擎，缺了降级，不算硬依赖",
+            "intent": null,
+            "tags": [
+              "Dangerous Code Execution",
+              "llm-unconfirmed"
+            ],
+            "evidence": {},
+            "match_fingerprint": "8ebe940c80aa054f75b19606011e6a0571cdafdf30b116c675e46be0be248b0e",
+            "occurrences": [
+              {
+                "file": "scripts/clip.py",
+                "start_line": 54,
+                "end_line": 54
+              }
+            ]
+          },
+          {
+            "id": "AST3",
+            "finding_id": "finding-b8fb3d34a15d4a579161b977fd7baf4d",
+            "category": "Dangerous Code Execution",
+            "pattern": "Dynamic import via __import__()",
+            "severity": "MEDIUM",
+            "confidence": 0.75,
+            "location": {
+              "file": "scripts/clip.py",
+              "start_line": 65,
+              "end_line": 65
+            },
+            "finding": "            __import__(mod)",
+            "explanation": "Dynamic __import__() can load arbitrary modules at runtime, bypassing static analysis and potentially importing malicious code.",
+            "remediation": "Use standard import statements instead of __import__(). If dynamic loading is needed, use importlib with an allowlist of permitted modules.",
+            "code_snippet": "    missing = []\n    for mod in (\"requests\", \"bs4\", \"lxml\"):\n        try:\n            __import__(mod)\n        except ImportError:\n            missing.append(mod)\n    # readability / trafilatura 是增强引擎，缺了降级，不算硬依赖",
+            "intent": null,
+            "tags": [
+              "Dangerous Code Execution",
+              "llm-unconfirmed"
+            ],
+            "evidence": {},
+            "match_fingerprint": "8ebe940c80aa054f75b19606011e6a0571cdafdf30b116c675e46be0be248b0e",
+            "occurrences": [
+              {
+                "file": "scripts/clip.py",
+                "start_line": 65,
+                "end_line": 65
+              }
+            ]
+          },
+          {
+            "id": "TT2",
+            "finding_id": "finding-2b1b731fcfe94f389e19416b63fd5116",
+            "category": "Data Flow",
+            "pattern": "Tainted flow: 'fpath' from os.environ.get (line 200, credential/environment) → open (file write)",
+            "severity": "MEDIUM",
+            "confidence": 0.65,
+            "location": {
+              "file": "scripts/clip.py",
+              "start_line": 160,
+              "end_line": 160
+            },
+            "finding": "    with open(fpath, \"w\", encoding=\"utf-8\") as f:",
+            "explanation": "Data from a source is assigned to a variable that is later passed to a sink, creating a variable-mediated taint flow.",
+            "remediation": "Validate tainted variables before passing them to sinks. Use allowlists, type checks, or sanitization functions on data from external sources.",
+            "code_snippet": "*由 xiaoyaoclaw-web-clipper 自动剪藏*\n\"\"\"\n\n    with open(fpath, \"w\", encoding=\"utf-8\") as f:\n        f.write(md)\n\n    # 更新索引",
+            "intent": null,
+            "tags": [
+              "Data Flow",
+              "llm-unconfirmed"
+            ],
+            "evidence": {},
+            "match_fingerprint": "92f1beeb035e40ad93e453548f826de1adc2c0fb07c0108c17fdb95b21ddb3e3",
+            "occurrences": [
+              {
+                "file": "scripts/clip.py",
+                "start_line": 160,
+                "end_line": 160
+              }
+            ]
+          },
+          {
+            "id": "SQP-3",
+            "finding_id": "finding-008580b09a1449598ea4ec40ec605968",
+            "category": null,
+            "pattern": null,
+            "severity": "MEDIUM",
+            "confidence": 0.95,
+            "location": {
+              "file": "scripts/extract.py",
+              "start_line": 4,
+              "end_line": 11
+            },
+            "finding": null,
+            "explanation": "The module-level natural-language documentation is written entirely in Chinese and presents the skill behavior in that locale without any indication of user choice or opt-in. Per the policy, forcing a specific language or locale without offering a choice is a natural-language policy concern.",
+            "remediation": "Add bilingual documentation or an explicit note that the skill supports multiple languages, and offer a user-selectable language/locale option where the skill is surfaced.",
+            "code_snippet": null,
+            "intent": null,
+            "tags": [
+              "llm-unconfirmed"
+            ],
+            "evidence": {},
+            "match_fingerprint": null,
+            "occurrences": [
+              {
+                "file": "scripts/extract.py",
+                "start_line": 4,
+                "end_line": 11
+              }
+            ]
+          },
+          {
+            "id": "SQP-2",
+            "finding_id": "finding-787ada959bbd4b76a39d9ca66666374b",
+            "category": null,
+            "pattern": null,
+            "severity": "LOW",
+            "confidence": 0.88,
+            "location": {
+              "file": "README.md",
+              "start_line": 25,
+              "end_line": 25
+            },
+            "finding": null,
+            "explanation": "The description emphasizes convenience and local-only behavior but does not clearly warn, near the invocation guidance, that using the skill will write Markdown files into knowledge/clippings/. This can lead users to trigger the skill without realizing it changes local state, which is especially relevant because the output is intended for later indexing and retrieval by other components.",
+            "remediation": "Add a prominent warning in the description and usage section stating that clipping fetches remote content and writes Markdown files plus dedup/index metadata to the local knowledge/clippings/ directory. Also mention any related side effects, such as batch mode writing multiple files and dedup state updates, so users can make an informed decision before invoking the skill.",
+            "code_snippet": null,
+            "intent": null,
+            "tags": [],
+            "evidence": {},
+            "match_fingerprint": null,
+            "occurrences": [
+              {
+                "file": "README.md",
+                "start_line": 25,
+                "end_line": 25
+              }
+            ]
+          },
+          {
+            "id": "SQP-2",
+            "finding_id": "finding-2eaa319c6a89460284380cda3b14e648",
+            "category": null,
+            "pattern": null,
+            "severity": "LOW",
+            "confidence": 0.89,
+            "location": {
+              "file": "docs/DESIGN.md",
+              "start_line": 80,
+              "end_line": 82
+            },
+            "finding": null,
+            "explanation": "The design states that clipped content is written by default to a local knowledge directory and may prompt or directly trigger index rebuilding, but it does not require explicit user consent or a clear warning about persistent local storage and downstream indexing. This can cause users to unintentionally retain sensitive web content locally and make it searchable by other components, increasing privacy and data handling risk.",
+            "remediation": "Require explicit user confirmation before saving content to the default knowledge directory or triggering index rebuilds, especially on first use. Add clear notices that content will be stored locally and may be indexed for retrieval, provide an easy opt-out or alternate output path, and consider a dry-run mode or per-run confirmation for indexing side effects.",
+            "code_snippet": null,
+            "intent": null,
+            "tags": [],
+            "evidence": {},
+            "match_fingerprint": null,
+            "occurrences": [
+              {
+                "file": "docs/DESIGN.md",
+                "start_line": 80,
+                "end_line": 82
+              }
+            ]
+          },
+          {
+            "id": "SQP-2",
+            "finding_id": "finding-37deb825d2cb479b90389fa1f4311bd0",
+            "category": null,
+            "pattern": null,
+            "severity": "LOW",
+            "confidence": 0.8,
+            "location": {
+              "file": "scripts/clip.py",
+              "start_line": 117,
+              "end_line": 170
+            },
+            "finding": null,
+            "explanation": "This code performs persistent file writes by creating the output directory, writing a Markdown clip, and updating a JSON index. Although saving is part of the tool's purpose, the implementation itself includes no inline warning, confirmation, or user-facing disclosure about modifying files in the target directory, which matches the missing-warning criterion for code files.",
+            "remediation": "Add a brief user-facing disclosure before writes occur, such as printing the destination directory and files to be created/updated, or include a docstring/comment near the save path explaining that the tool writes Markdown files and .clips-index.json to disk.",
+            "code_snippet": null,
+            "intent": null,
+            "tags": [
+              "llm-unconfirmed"
+            ],
+            "evidence": {},
+            "match_fingerprint": null,
+            "occurrences": [
+              {
+                "file": "scripts/clip.py",
+                "start_line": 117,
+                "end_line": 170
+              }
+            ]
+          },
+          {
+            "id": "SQP-2",
+            "finding_id": "finding-23351c54e0b348f0ae136c3cc096bccc",
+            "category": null,
+            "pattern": null,
+            "severity": "LOW",
+            "confidence": 0.76,
+            "location": {
+              "file": "scripts/clip.py",
+              "start_line": 187,
+              "end_line": 195
+            },
+            "finding": null,
+            "explanation": "The skill makes outbound network requests via fetch_html(url) to retrieve webpage content. While the runtime print shows the URL being clipped, there is no explicit warning in code comments or docstrings that contacting remote servers may disclose request metadata such as IP address and headers.",
+            "remediation": "Add a short docstring, comment, or user-facing message stating that the tool connects to the specified URLs and that remote servers may receive normal HTTP request metadata during clipping.",
+            "code_snippet": null,
+            "intent": null,
+            "tags": [
+              "llm-unconfirmed"
+            ],
+            "evidence": {},
+            "match_fingerprint": null,
+            "occurrences": [
+              {
+                "file": "scripts/clip.py",
+                "start_line": 187,
+                "end_line": 195
+              }
+            ]
+          },
+          {
+            "id": "SQP-2",
+            "finding_id": "finding-b9324da10fde42ecb5941c558f71fadd",
+            "category": null,
+            "pattern": null,
+            "severity": "LOW",
+            "confidence": 0.85,
+            "location": {
+              "file": "scripts/extract.py",
+              "start_line": 181,
+              "end_line": 185
+            },
+            "finding": null,
+            "explanation": "This Python file performs an outbound HTTP request to a user-supplied URL via requests.get, which can disclose the user's target resource and system network activity to external servers. While the function docstring says it fetches a webpage, there is no user-facing prompt, warning, or logging around the network action in this file.",
+            "remediation": "Add a clear user-facing disclosure before or when fetch_html/extract is used, such as a print/log message or calling-layer confirmation that the skill will contact the specified external URL. If this network access is expected as core behavior, document that explicitly in the skill's markdown/README.",
+            "code_snippet": null,
+            "intent": null,
+            "tags": [
+              "llm-unconfirmed"
+            ],
+            "evidence": {},
+            "match_fingerprint": null,
+            "occurrences": [
+              {
+                "file": "scripts/extract.py",
+                "start_line": 181,
+                "end_line": 185
+              }
+            ]
+          }
+        ],
+        "suppressed_count": 0,
+        "suppressed": [],
+        "metadata": {
+          "has_executable_scripts": true,
+          "skillspector_version": "2.11.2",
+          "llm_requested": true,
+          "llm_available": true,
+          "meta_analysis_applied": true,
+          "inference_usage": [
+            {
+              "node": "mcp_tool_poisoning",
+              "request_kind": "structured_output",
+              "provider": "openai",
+              "model": "gpt-5.4-2026-03-05",
+              "model_source": "provider_response",
+              "usage_source": "provider_response",
+              "prompt_tokens": 2861,
+              "completion_tokens": 292,
+              "cached_tokens": 0,
+              "reasoning_tokens": 0,
+              "total_tokens": 3153
+            },
+            {
+              "node": "mcp_tool_poisoning",
+              "request_kind": "structured_output",
+              "provider": "openai",
+              "model": "gpt-5.4-2026-03-05",
+              "model_source": "provider_response",
+              "usage_source": "provider_response",
+              "prompt_tokens": 2945,
+              "completion_tokens": 265,
+              "cached_tokens": 0,
+              "reasoning_tokens": 0,
+              "total_tokens": 3210
+            },
+            {
+              "node": "semantic_developer_intent",
+              "request_kind": "structured_output",
+              "provider": "openai",
+              "model": "gpt-5.4-2026-03-05",
+              "model_source": "provider_response",
+              "usage_source": "provider_response",
+              "prompt_tokens": 1778,
+              "completion_tokens": 14,
+              "cached_tokens": 0,
+              "reasoning_tokens": 0,
+              "total_tokens": 1792
+            },
+            {
+              "node": "semantic_developer_intent",
+              "request_kind": "structured_output",
+              "provider": "openai",
+              "model": "gpt-5.4-2026-03-05",
+              "model_source": "provider_response",
+              "usage_source": "provider_response",
+              "prompt_tokens": 2893,
+              "completion_tokens": 14,
+              "cached_tokens": 0,
+              "reasoning_tokens": 0,
+              "total_tokens": 2907
+            },
+            {
+              "node": "semantic_developer_intent",
+              "request_kind": "structured_output",
+              "provider": "openai",
+              "model": "gpt-5.4-2026-03-05",
+              "model_source": "provider_response",
+              "usage_source": "provider_response",
+              "prompt_tokens": 4278,
+              "completion_tokens": 14,
+              "cached_tokens": 0,
+              "reasoning_tokens": 0,
+              "total_tokens": 4292
+            },
+            {
+              "node": "semantic_developer_intent",
+              "request_kind": "structured_output",
+              "provider": "openai",
+              "model": "gpt-5.4-2026-03-05",
+              "model_source": "provider_response",
+              "usage_source": "provider_response",
+              "prompt_tokens": 4599,
+              "completion_tokens": 14,
+              "cached_tokens": 0,
+              "reasoning_tokens": 0,
+              "total_tokens": 4613
+            },
+            {
+              "node": "semantic_developer_intent",
+              "request_kind": "structured_output",
+              "provider": "openai",
+              "model": "gpt-5.4-2026-03-05",
+              "model_source": "provider_response",
+              "usage_source": "provider_response",
+              "prompt_tokens": 2962,
+              "completion_tokens": 14,
+              "cached_tokens": 0,
+              "reasoning_tokens": 0,
+              "total_tokens": 2976
+            },
+            {
+              "node": "semantic_developer_intent",
+              "request_kind": "structured_output",
+              "provider": "openai",
+              "model": "gpt-5.4-2026-03-05",
+              "model_source": "provider_response",
+              "usage_source": "provider_response",
+              "prompt_tokens": 3291,
+              "completion_tokens": 14,
+              "cached_tokens": 0,
+              "reasoning_tokens": 0,
+              "total_tokens": 3305
+            },
+            {
+              "node": "semantic_developer_intent",
+              "request_kind": "structured_output",
+              "provider": "openai",
+              "model": "gpt-5.4-2026-03-05",
+              "model_source": "provider_response",
+              "usage_source": "provider_response",
+              "prompt_tokens": 3510,
+              "completion_tokens": 14,
+              "cached_tokens": 0,
+              "reasoning_tokens": 0,
+              "total_tokens": 3524
+            },
+            {
+              "node": "semantic_developer_intent",
+              "request_kind": "structured_output",
+              "provider": "openai",
+              "model": "gpt-5.4-2026-03-05",
+              "model_source": "provider_response",
+              "usage_source": "provider_response",
+              "prompt_tokens": 4720,
+              "completion_tokens": 14,
+              "cached_tokens": 0,
+              "reasoning_tokens": 0,
+              "total_tokens": 4734
+            },
+            {
+              "node": "semantic_developer_intent",
+              "request_kind": "structured_output",
+              "provider": "openai",
+              "model": "gpt-5.4-2026-03-05",
+              "model_source": "provider_response",
+              "usage_source": "provider_response",
+              "prompt_tokens": 4834,
+              "completion_tokens": 14,
+              "cached_tokens": 0,
+              "reasoning_tokens": 0,
+              "total_tokens": 4848
+            },
+            {
+              "node": "semantic_quality_policy",
+              "request_kind": "structured_output",
+              "provider": "openai",
+              "model": "gpt-5.4-2026-03-05",
+              "model_source": "provider_response",
+              "usage_source": "provider_response",
+              "prompt_tokens": 1650,
+              "completion_tokens": 14,
+              "cached_tokens": 0,
+              "reasoning_tokens": 0,
+              "total_tokens": 1664
+            },
+            {
+              "node": "semantic_quality_policy",
+              "request_kind": "structured_output",
+              "provider": "openai",
+              "model": "gpt-5.4-2026-03-05",
+              "model_source": "provider_response",
+              "usage_source": "provider_response",
+              "prompt_tokens": 2765,
+              "completion_tokens": 14,
+              "cached_tokens": 0,
+              "reasoning_tokens": 0,
+              "total_tokens": 2779
+            },
+            {
+              "node": "semantic_quality_policy",
+              "request_kind": "structured_output",
+              "provider": "openai",
+              "model": "gpt-5.4-2026-03-05",
+              "model_source": "provider_response",
+              "usage_source": "provider_response",
+              "prompt_tokens": 2834,
+              "completion_tokens": 14,
+              "cached_tokens": 0,
+              "reasoning_tokens": 0,
+              "total_tokens": 2848
+            },
+            {
+              "node": "semantic_quality_policy",
+              "request_kind": "structured_output",
+              "provider": "openai",
+              "model": "gpt-5.4-2026-03-05",
+              "model_source": "provider_response",
+              "usage_source": "provider_response",
+              "prompt_tokens": 3163,
+              "completion_tokens": 14,
+              "cached_tokens": 0,
+              "reasoning_tokens": 0,
+              "total_tokens": 3177
+            },
+            {
+              "node": "semantic_quality_policy",
+              "request_kind": "structured_output",
+              "provider": "openai",
+              "model": "gpt-5.4-2026-03-05",
+              "model_source": "provider_response",
+              "usage_source": "provider_response",
+              "prompt_tokens": 4150,
+              "completion_tokens": 345,
+              "cached_tokens": 0,
+              "reasoning_tokens": 0,
+              "total_tokens": 4495
+            },
+            {
+              "node": "semantic_quality_policy",
+              "request_kind": "structured_output",
+              "provider": "openai",
+              "model": "gpt-5.4-2026-03-05",
+              "model_source": "provider_response",
+              "usage_source": "provider_response",
+              "prompt_tokens": 4471,
+              "completion_tokens": 353,
+              "cached_tokens": 0,
+              "reasoning_tokens": 0,
+              "total_tokens": 4824
+            },
+            {
+              "node": "semantic_quality_policy",
+              "request_kind": "structured_output",
+              "provider": "openai",
+              "model": "gpt-5.4-2026-03-05",
+              "model_source": "provider_response",
+              "usage_source": "provider_response",
+              "prompt_tokens": 3382,
+              "completion_tokens": 178,
+              "cached_tokens": 0,
+              "reasoning_tokens": 0,
+              "total_tokens": 3560
+            },
+            {
+              "node": "semantic_quality_policy",
+              "request_kind": "structured_output",
+              "provider": "openai",
+              "model": "gpt-5.4-2026-03-05",
+              "model_source": "provider_response",
+              "usage_source": "provider_response",
+              "prompt_tokens": 4592,
+              "completion_tokens": 481,
+              "cached_tokens": 0,
+              "reasoning_tokens": 0,
+              "total_tokens": 5073
+            },
+            {
+              "node": "semantic_quality_policy",
+              "request_kind": "structured_output",
+              "provider": "openai",
+              "model": "gpt-5.4-2026-03-05",
+              "model_source": "provider_response",
+              "usage_source": "provider_response",
+              "prompt_tokens": 4706,
+              "completion_tokens": 324,
+              "cached_tokens": 0,
+              "reasoning_tokens": 0,
+              "total_tokens": 5030
+            },
+            {
+              "node": "semantic_security_discovery",
+              "request_kind": "structured_output",
+              "provider": "openai",
+              "model": "gpt-5.4-2026-03-05",
+              "model_source": "provider_response",
+              "usage_source": "provider_response",
+              "prompt_tokens": 1182,
+              "completion_tokens": 14,
+              "cached_tokens": 0,
+              "reasoning_tokens": 0,
+              "total_tokens": 1196
+            },
+            {
+              "node": "semantic_security_discovery",
+              "request_kind": "structured_output",
+              "provider": "openai",
+              "model": "gpt-5.4-2026-03-05",
+              "model_source": "provider_response",
+              "usage_source": "provider_response",
+              "prompt_tokens": 2297,
+              "completion_tokens": 14,
+              "cached_tokens": 0,
+              "reasoning_tokens": 0,
+              "total_tokens": 2311
+            },
+            {
+              "node": "semantic_security_discovery",
+              "request_kind": "structured_output",
+              "provider": "openai",
+              "model": "gpt-5.4-2026-03-05",
+              "model_source": "provider_response",
+              "usage_source": "provider_response",
+              "prompt_tokens": 3682,
+              "completion_tokens": 14,
+              "cached_tokens": 0,
+              "reasoning_tokens": 0,
+              "total_tokens": 3696
+            },
+            {
+              "node": "semantic_security_discovery",
+              "request_kind": "structured_output",
+              "provider": "openai",
+              "model": "gpt-5.4-2026-03-05",
+              "model_source": "provider_response",
+              "usage_source": "provider_response",
+              "prompt_tokens": 4003,
+              "completion_tokens": 14,
+              "cached_tokens": 0,
+              "reasoning_tokens": 0,
+              "total_tokens": 4017
+            },
+            {
+              "node": "semantic_security_discovery",
+              "request_kind": "structured_output",
+              "provider": "openai",
+              "model": "gpt-5.4-2026-03-05",
+              "model_source": "provider_response",
+              "usage_source": "provider_response",
+              "prompt_tokens": 2695,
+              "completion_tokens": 14,
+              "cached_tokens": 0,
+              "reasoning_tokens": 0,
+              "total_tokens": 2709
+            },
+            {
+              "node": "semantic_security_discovery",
+              "request_kind": "structured_output",
+              "provider": "openai",
+              "model": "gpt-5.4-2026-03-05",
+              "model_source": "provider_response",
+              "usage_source": "provider_response",
+              "prompt_tokens": 2366,
+              "completion_tokens": 14,
+              "cached_tokens": 0,
+              "reasoning_tokens": 0,
+              "total_tokens": 2380
+            },
+            {
+              "node": "semantic_security_discovery",
+              "request_kind": "structured_output",
+              "provider": "openai",
+              "model": "gpt-5.4-2026-03-05",
+              "model_source": "provider_response",
+              "usage_source": "provider_response",
+              "prompt_tokens": 2914,
+              "completion_tokens": 14,
+              "cached_tokens": 0,
+              "reasoning_tokens": 0,
+              "total_tokens": 2928
+            },
+            {
+              "node": "semantic_security_discovery",
+              "request_kind": "structured_output",
+              "provider": "openai",
+              "model": "gpt-5.4-2026-03-05",
+              "model_source": "provider_response",
+              "usage_source": "provider_response",
+              "prompt_tokens": 4124,
+              "completion_tokens": 14,
+              "cached_tokens": 0,
+              "reasoning_tokens": 0,
+              "total_tokens": 4138
+            },
+            {
+              "node": "semantic_security_discovery",
+              "request_kind": "structured_output",
+              "provider": "openai",
+              "model": "gpt-5.4-2026-03-05",
+              "model_source": "provider_response",
+              "usage_source": "provider_response",
+              "prompt_tokens": 4238,
+              "completion_tokens": 14,
+              "cached_tokens": 0,
+              "reasoning_tokens": 0,
+              "total_tokens": 4252
+            },
+            {
+              "node": "meta_analyzer",
+              "request_kind": "structured_output",
+              "provider": "openai",
+              "model": "gpt-5.4-2026-03-05",
+              "model_source": "provider_response",
+              "usage_source": "provider_response",
+              "prompt_tokens": 2560,
+              "completion_tokens": 202,
+              "cached_tokens": 0,
+              "reasoning_tokens": 0,
+              "total_tokens": 2762
+            },
+            {
+              "node": "meta_analyzer",
+              "request_kind": "structured_output",
+              "provider": "openai",
+              "model": "gpt-5.4-2026-03-05",
+              "model_source": "provider_response",
+              "usage_source": "provider_response",
+              "prompt_tokens": 2792,
+              "completion_tokens": 248,
+              "cached_tokens": 0,
+              "reasoning_tokens": 0,
+              "total_tokens": 3040
+            },
+            {
+              "node": "meta_analyzer",
+              "request_kind": "structured_output",
+              "provider": "openai",
+              "model": "gpt-5.4-2026-03-05",
+              "model_source": "provider_response",
+              "usage_source": "provider_response",
+              "prompt_tokens": 2562,
+              "completion_tokens": 320,
+              "cached_tokens": 0,
+              "reasoning_tokens": 0,
+              "total_tokens": 2882
+            },
+            {
+              "node": "meta_analyzer",
+              "request_kind": "structured_output",
+              "provider": "openai",
+              "model": "gpt-5.4-2026-03-05",
+              "model_source": "provider_response",
+              "usage_source": "provider_response",
+              "prompt_tokens": 3638,
+              "completion_tokens": 349,
+              "cached_tokens": 0,
+              "reasoning_tokens": 0,
+              "total_tokens": 3987
+            },
+            {
+              "node": "meta_analyzer",
+              "request_kind": "structured_output",
+              "provider": "openai",
+              "model": "gpt-5.4-2026-03-05",
+              "model_source": "provider_response",
+              "usage_source": "provider_response",
+              "prompt_tokens": 3671,
+              "completion_tokens": 460,
+              "cached_tokens": 0,
+              "reasoning_tokens": 0,
+              "total_tokens": 4131
+            },
+            {
+              "node": "meta_analyzer",
+              "request_kind": "structured_output",
+              "provider": "openai",
+              "model": "gpt-5.4-2026-03-05",
+              "model_source": "provider_response",
+              "usage_source": "provider_response",
+              "prompt_tokens": 3349,
+              "completion_tokens": 434,
+              "cached_tokens": 0,
+              "reasoning_tokens": 0,
+              "total_tokens": 3783
+            },
+            {
+              "node": "meta_analyzer",
+              "request_kind": "structured_output",
+              "provider": "openai",
+              "model": "gpt-5.4-2026-03-05",
+              "model_source": "provider_response",
+              "usage_source": "provider_response",
+              "prompt_tokens": 4087,
+              "completion_tokens": 982,
+              "cached_tokens": 0,
+              "reasoning_tokens": 0,
+              "total_tokens": 5069
+            }
+          ],
+          "llm_calls_attempted": 5,
+          "llm_calls_succeeded": 5
+        },
+        "execution_successful": true,
+        "analysis_completeness": {
+          "total_components": 9,
+          "scanned_components": 9,
+          "coverage_percent": 100,
+          "is_complete": false,
+          "status": "partial",
+          "execution_successful": true,
+          "fully_inspected_files": 9,
+          "partially_inspected_files": 0,
+          "entirely_uninspected_files": 0,
+          "ledger_exceptions": [
+            {
+              "outcome": "partial",
+              "phase": "reference_resolution",
+              "reason_code": "reference_unresolved",
+              "message": "A local path-like reference could not be resolved unambiguously.",
+              "path": "SKILL.md",
+              "start_line": 8,
+              "end_line": 8,
+              "fatal": false
+            },
+            {
+              "outcome": "partial",
+              "phase": "reference_resolution",
+              "reason_code": "reference_unresolved",
+              "message": "A local path-like reference could not be resolved unambiguously.",
+              "path": "SKILL.md",
+              "start_line": 31,
+              "end_line": 31,
+              "fatal": false
+            },
+            {
+              "outcome": "partial",
+              "phase": "reference_resolution",
+              "reason_code": "reference_unresolved",
+              "message": "A local path-like reference could not be resolved unambiguously.",
+              "path": "SKILL.md",
+              "start_line": 36,
+              "end_line": 36,
+              "fatal": false
+            },
+            {
+              "outcome": "partial",
+              "phase": "reference_resolution",
+              "reason_code": "reference_unresolved",
+              "message": "A local path-like reference could not be resolved unambiguously.",
+              "path": "SKILL.md",
+              "start_line": 73,
+              "end_line": 73,
+              "fatal": false
+            },
+            {
+              "outcome": "partial",
+              "phase": "reference_resolution",
+              "reason_code": "reference_unresolved",
+              "message": "A local path-like reference could not be resolved unambiguously.",
+              "path": "SKILL.md",
+              "start_line": 81,
+              "end_line": 81,
+              "fatal": false
+            },
+            {
+              "outcome": "partial",
+              "phase": "reference_resolution",
+              "reason_code": "reference_unresolved",
+              "message": "A local path-like reference could not be resolved unambiguously.",
+              "path": "SKILL.md",
+              "start_line": 91,
+              "end_line": 91,
+              "fatal": false
+            },
+            {
+              "outcome": "partial",
+              "phase": "reference_resolution",
+              "reason_code": "reference_unresolved",
+              "message": "A local path-like reference could not be resolved unambiguously.",
+              "path": "SKILL.md",
+              "start_line": 102,
+              "end_line": 102,
+              "fatal": false
+            },
+            {
+              "outcome": "partial",
+              "phase": "reference_resolution",
+              "reason_code": "reference_unresolved",
+              "message": "A local path-like reference could not be resolved unambiguously.",
+              "path": "SKILL.md",
+              "start_line": 106,
+              "end_line": 106,
+              "fatal": false
+            }
+          ],
+          "scope_exclusions": [
+            {
+              "outcome": "out_of_scope",
+              "phase": "static",
+              "reason_code": "binary_content",
+              "message": "Binary content is unsupported by this analyzer.",
+              "path": "assets/readme/community-qr.png",
+              "start_line": null,
+              "end_line": null,
+              "fatal": false,
+              "analyzers": [
+                "static_patterns_agent_snooping",
+                "static_patterns_anti_refusal",
+                "static_patterns_data_exfiltration",
+                "static_patterns_deserialization",
+                "static_patterns_excessive_agency",
+                "static_patterns_harmful_content",
+                "static_patterns_memory_poisoning",
+                "static_patterns_output_handling",
+                "static_patterns_privilege_escalation",
+                "static_patterns_prompt_injection",
+                "static_patterns_rogue_agent",
+                "static_patterns_ssrf",
+                "static_patterns_supply_chain",
+                "static_patterns_system_prompt_leakage",
+                "static_patterns_tool_misuse"
+              ]
+            }
+          ],
+          "analyzer_statuses": [
+            {
+              "analyzer_id": "artifact_integrity",
+              "status": "completed",
+              "planned_work": 10,
+              "completed": 10,
+              "partial": 0,
+              "skipped": 0,
+              "failed": 0,
+              "unaccounted": 0
+            },
+            {
+              "analyzer_id": "behavioral_ast",
+              "status": "completed",
+              "planned_work": 2,
+              "completed": 2,
+              "partial": 0,
+              "skipped": 0,
+              "failed": 0,
+              "unaccounted": 0
+            },
+            {
+              "analyzer_id": "behavioral_taint_tracking",
+              "status": "completed",
+              "planned_work": 2,
+              "completed": 2,
+              "partial": 0,
+              "skipped": 0,
+              "failed": 0,
+              "unaccounted": 0
+            },
+            {
+              "analyzer_id": "bundled_execution_surface",
+              "status": "not_applicable",
+              "planned_work": 0,
+              "completed": 0,
+              "partial": 0,
+              "skipped": 0,
+              "failed": 0,
+              "unaccounted": 0,
+              "reason_code": "no_applicable_files",
+              "message": "No files matched this analyzer's applicability contract."
+            },
+            {
+              "analyzer_id": "mcp_least_privilege",
+              "status": "completed",
+              "planned_work": 3,
+              "completed": 3,
+              "partial": 0,
+              "skipped": 0,
+              "failed": 0,
+              "unaccounted": 0
+            },
+            {
+              "analyzer_id": "mcp_rug_pull",
+              "status": "completed",
+              "planned_work": 10,
+              "completed": 10,
+              "partial": 0,
+              "skipped": 0,
+              "failed": 0,
+              "unaccounted": 0
+            },
+            {
+              "analyzer_id": "mcp_tool_poisoning",
+              "status": "completed",
+              "planned_work": 3,
+              "completed": 3,
+              "partial": 0,
+              "skipped": 0,
+              "failed": 0,
+              "unaccounted": 0
+            },
+            {
+              "analyzer_id": "meta_analyzer",
+              "status": "completed",
+              "planned_work": 7,
+              "completed": 7,
+              "partial": 0,
+              "skipped": 0,
+              "failed": 0,
+              "unaccounted": 0
+            },
+            {
+              "analyzer_id": "semantic_developer_intent",
+              "status": "completed",
+              "planned_work": 9,
+              "completed": 9,
+              "partial": 0,
+              "skipped": 0,
+              "failed": 0,
+              "unaccounted": 0
+            },
+            {
+              "analyzer_id": "semantic_quality_policy",
+              "status": "completed",
+              "planned_work": 9,
+              "completed": 9,
+              "partial": 0,
+              "skipped": 0,
+              "failed": 0,
+              "unaccounted": 0
+            },
+            {
+              "analyzer_id": "semantic_security_discovery",
+              "status": "completed",
+              "planned_work": 9,
+              "completed": 9,
+              "partial": 0,
+              "skipped": 0,
+              "failed": 0,
+              "unaccounted": 0
+            },
+            {
+              "analyzer_id": "static_patterns_agent_snooping",
+              "status": "completed",
+              "planned_work": 10,
+              "completed": 9,
+              "partial": 0,
+              "skipped": 0,
+              "failed": 1,
+              "unaccounted": 0
+            },
+            {
+              "analyzer_id": "static_patterns_anti_refusal",
+              "status": "completed",
+              "planned_work": 10,
+              "completed": 9,
+              "partial": 0,
+              "skipped": 0,
+              "failed": 1,
+              "unaccounted": 0
+            },
+            {
+              "analyzer_id": "static_patterns_data_exfiltration",
+              "status": "completed",
+              "planned_work": 10,
+              "completed": 9,
+              "partial": 0,
+              "skipped": 0,
+              "failed": 1,
+              "unaccounted": 0
+            },
+            {
+              "analyzer_id": "static_patterns_deserialization",
+              "status": "completed",
+              "planned_work": 10,
+              "completed": 9,
+              "partial": 0,
+              "skipped": 0,
+              "failed": 1,
+              "unaccounted": 0
+            },
+            {
+              "analyzer_id": "static_patterns_excessive_agency",
+              "status": "completed",
+              "planned_work": 10,
+              "completed": 9,
+              "partial": 0,
+              "skipped": 0,
+              "failed": 1,
+              "unaccounted": 0
+            },
+            {
+              "analyzer_id": "static_patterns_harmful_content",
+              "status": "completed",
+              "planned_work": 10,
+              "completed": 9,
+              "partial": 0,
+              "skipped": 0,
+              "failed": 1,
+              "unaccounted": 0
+            },
+            {
+              "analyzer_id": "static_patterns_memory_poisoning",
+              "status": "completed",
+              "planned_work": 10,
+              "completed": 9,
+              "partial": 0,
+              "skipped": 0,
+              "failed": 1,
+              "unaccounted": 0
+            },
+            {
+              "analyzer_id": "static_patterns_output_handling",
+              "status": "completed",
+              "planned_work": 10,
+              "completed": 9,
+              "partial": 0,
+              "skipped": 0,
+              "failed": 1,
+              "unaccounted": 0
+            },
+            {
+              "analyzer_id": "static_patterns_privilege_escalation",
+              "status": "completed",
+              "planned_work": 10,
+              "completed": 9,
+              "partial": 0,
+              "skipped": 0,
+              "failed": 1,
+              "unaccounted": 0
+            },
+            {
+              "analyzer_id": "static_patterns_prompt_injection",
+              "status": "completed",
+              "planned_work": 10,
+              "completed": 9,
+              "partial": 0,
+              "skipped": 0,
+              "failed": 1,
+              "unaccounted": 0
+            },
+            {
+              "analyzer_id": "static_patterns_rogue_agent",
+              "status": "completed",
+              "planned_work": 10,
+              "completed": 9,
+              "partial": 0,
+              "skipped": 0,
+              "failed": 1,
+              "unaccounted": 0
+            },
+            {
+              "analyzer_id": "static_patterns_ssrf",
+              "status": "completed",
+              "planned_work": 10,
+              "completed": 9,
+              "partial": 0,
+              "skipped": 0,
+              "failed": 1,
+              "unaccounted": 0
+            },
+            {
+              "analyzer_id": "static_patterns_supply_chain",
+              "status": "completed",
+              "planned_work": 10,
+              "completed": 9,
+              "partial": 0,
+              "skipped": 0,
+              "failed": 1,
+              "unaccounted": 0
+            },
+            {
+              "analyzer_id": "static_patterns_system_prompt_leakage",
+              "status": "completed",
+              "planned_work": 10,
+              "completed": 9,
+              "partial": 0,
+              "skipped": 0,
+              "failed": 1,
+              "unaccounted": 0
+            },
+            {
+              "analyzer_id": "static_patterns_tool_misuse",
+              "status": "completed",
+              "planned_work": 10,
+              "completed": 9,
+              "partial": 0,
+              "skipped": 0,
+              "failed": 1,
+              "unaccounted": 0
+            },
+            {
+              "analyzer_id": "static_yara",
+              "status": "completed",
+              "planned_work": 10,
+              "completed": 10,
+              "partial": 0,
+              "skipped": 0,
+              "failed": 0,
+              "unaccounted": 0
+            }
+          ],
+          "references": [
+            {
+              "source_path": "SKILL.md",
+              "line": 8,
+              "column": 21,
+              "evidence": "when user asks to clip/save/collect a web page or article (剪藏/收藏/保存网页",
+              "target_path": null,
+              "status": "missing",
+              "disposition": "partial"
+            },
+            {
+              "source_path": "SKILL.md",
+              "line": 31,
+              "column": 24,
+              "evidence": "- 保存目录内的 `.md` 剪藏文件 + `.clips-index.json` 去重索引（自动维护）",
+              "target_path": null,
+              "status": "missing",
+              "disposition": "partial"
+            },
+            {
+              "source_path": "SKILL.md",
+              "line": 36,
+              "column": 9,
+              "evidence": "- 遇反爬站点（521/403）如实报告，不绕过、不伪装",
+              "target_path": null,
+              "status": "missing",
+              "disposition": "partial"
+            },
+            {
+              "source_path": "SKILL.md",
+              "line": 43,
+              "column": 11,
+              "evidence": "python scripts/clip.py <URL> [--dir <保存目录>] [--tags ai,research]",
+              "target_path": "scripts/clip.py",
+              "status": "resolved",
+              "disposition": "analyzed"
+            },
+            {
+              "source_path": "SKILL.md",
+              "line": 49,
+              "column": 11,
+              "evidence": "python scripts/clip.py --batch <urls.txt> [--dir <保存目录>]",
+              "target_path": "scripts/clip.py",
+              "status": "resolved",
+              "disposition": "analyzed"
+            },
+            {
+              "source_path": "SKILL.md",
+              "line": 54,
+              "column": 11,
+              "evidence": "python scripts/clip.py --check",
+              "target_path": "scripts/clip.py",
+              "status": "resolved",
+              "disposition": "analyzed"
+            },
+            {
+              "source_path": "SKILL.md",
+              "line": 73,
+              "column": 74,
+              "evidence": "**中文适配**：微信公众号 `#js_content`、知乎 `.RichText`、CSDN `.article-detail` 等容器内置；GBK/UTF-8 编码自动判定。",
+              "target_path": null,
+              "status": "missing",
+              "disposition": "partial"
+            },
+            {
+              "source_path": "SKILL.md",
+              "line": 81,
+              "column": 10,
+              "evidence": "domain: \"example.com\"",
+              "target_path": null,
+              "status": "missing",
+              "disposition": "partial"
+            },
+            {
+              "source_path": "SKILL.md",
+              "line": 91,
+              "column": 15,
+              "evidence": "> 原文链接: [...](...)",
+              "target_path": null,
+              "status": "missing",
+              "disposition": "partial"
+            },
+            {
+              "source_path": "SKILL.md",
+              "line": 102,
+              "column": 24,
+              "evidence": "- 重名自动加序号；重复 URL 自动跳过（`.clips-index.json` 去重）",
+              "target_path": null,
+              "status": "missing",
+              "disposition": "partial"
+            },
+            {
+              "source_path": "SKILL.md",
+              "line": 106,
+              "column": 11,
+              "evidence": "- 不绕过反爬（遇 521/403 如实报告，建议用户换浏览器/换源）",
+              "target_path": null,
+              "status": "missing",
+              "disposition": "partial"
+            }
+          ],
+          "limitations": [],
+          "findings_before_filtering": 16,
+          "findings_after_filtering": 16
+        }
+      }
+    }
+  },
+  "signature": {
+    "status": "unsigned"
+  }
+}

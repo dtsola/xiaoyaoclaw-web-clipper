@@ -1,0 +1,5 @@
+# 仓库侧过程记录 / 设计文档 / 测试产物不进发布包
+PROGRESS.md
+docs/
+tmp/
+__pycache__/

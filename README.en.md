@@ -50,9 +50,9 @@ Dependencies: `requests` `beautifulsoup4` `lxml` (optional enhancers: `readabili
 
 ```bash
 pip install -r requirements.txt
-# Equivalent to: requests>=2.32.4 / beautifulsoup4>=4.12.3 / lxml>=5.2.1
+# Equivalent to: requests==2.34.2 / beautifulsoup4==4.15.0 / lxml==6.1.1
 # Optional (better extraction quality, auto-fallback when missing):
-#   readability-lxml>=0.8.1 / trafilatura>=1.12.2
+#   readability-lxml==0.9 / trafilatura==2.2.0
 ```
 
 ## Usage

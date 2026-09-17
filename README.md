@@ -51,9 +51,9 @@ git clone https://github.com/dtsola/xiaoyaoclaw-web-clipper
 
 ```bash
 pip install -r requirements.txt
-# 等价于：requests>=2.32.4 / beautifulsoup4>=4.12.3 / lxml>=5.2.1
+# 等价于：requests==2.34.2 / beautifulsoup4==4.15.0 / lxml==6.1.1
 # 可选增强（提取质量更高，缺了自动降级）：
-#   readability-lxml>=0.8.1 / trafilatura>=1.12.2
+#   readability-lxml==0.9 / trafilatura==2.2.0
 ```
 
 ## 使用

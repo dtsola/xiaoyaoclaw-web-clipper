@@ -23,6 +23,7 @@ allowed-tools:
   - Grep
   - Bash
   - WebFetch
+  - Env
 ---
 
 # OpenClaw Web Clipper（网页剪藏）
@@ -46,6 +47,8 @@ allowed-tools:
 - 只访问用户给出的 URL，且必须解析为**公网地址**：回环、私有网段、链路本地（含云元数据服务地址）、CGNAT、保留段、IPv6 ULA/回环一律拒绝（`scripts/netguard.py` 统一把关）
 - 只允许 http/https 与 **80/443 端口**；不自动跟随重定向，**每一跳重新校验**（最多 3 跳）；单次只读前 5 MB；只发 GET，不带 cookie / Authorization
 - 不登录、不提交表单、不发 POST、不探端口
+
+**环境变量（只有这一个）：** 脚本只读 **`CLIPPER_OUTPUT_DIR`**（覆盖默认输出目录）——这是本技能唯一的 `Env` 用途；该值同样要过下面的「写入根」校验，越界一律拒绝。**不读取任何其他环境变量，不读凭据/密钥。**
 
 **写入根（只写这一处）：**
 - 输出目录默认 `~/knowledge/clippings/`；可用 `--dir` 或 `$CLIPPER_OUTPUT_DIR` 覆盖，但**必须位于用户主目录内**且不含 `..`（脚本会校验并拒绝越界路径）
@@ -152,8 +155,9 @@ tags: []
 - 不删除任何文件（包括去重索引，只追加）
 - 不调用外部 API，数据不出本机
 - 依赖**钉版本下限**（避免装到已知有问题的旧版本）：`pip install -r requirements.txt`
-  （= `requests>=2.32.4` / `beautifulsoup4>=4.12.3` / `lxml>=5.2.1`）；增强引擎
-  `readability-lxml>=0.8.1` / `trafilatura>=1.12.2` 可选，缺了自动降级
+  （**精确钉版**：`requests==2.34.2` / `beautifulsoup4==4.15.0` / `lxml==6.1.1`，可复现安装）；
+  增强引擎 `readability-lxml==0.9` / `trafilatura==2.2.0` 可选，缺了自动降级；
+  升级依赖需显式改 `requirements.txt` 并复查（本技能解析任意远端 HTML，解析库版本必须确定）
 
 ## 姊妹项目（六件套）
 

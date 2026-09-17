@@ -37,9 +37,9 @@ if hasattr(sys.stderr, "reconfigure"):
 
 from extract import extract, fetch_html
 
-DEFAULT_DIR = os.path.expanduser(
-    os.environ.get("CLIPPER_OUTPUT_DIR", "~/knowledge/clippings")
-)
+# ⚠️ 本技能**唯一**读取的环境变量（权限声明见 SKILL.md：allowed-tools 中的 Env）
+ENV_OUTPUT_DIR = "CLIPPER_OUTPUT_DIR"
+DEFAULT_DIR_RELATIVE = "knowledge/clippings"   # 相对用户主目录
 INDEX_NAME = ".clips-index.json"
 
 # 依赖下限（钉住已知安全/可用版本区间下限；上游升级不受阻）
@@ -76,7 +76,10 @@ def resolve_output_dir(out_dir: str | None) -> str:
     再要求它落在用户主目录内（默认工作区知识库也在主目录下），避免被指向
     系统目录或通过 `..` 越界写入；同时拒绝把文件当目录用。
     """
-    raw = out_dir or DEFAULT_DIR
+    env_override = os.environ.get(ENV_OUTPUT_DIR)   # ← 全脚本唯一读环境变量处
+    raw = out_dir or env_override or str(Path.home() / DEFAULT_DIR_RELATIVE)
+    if not isinstance(raw, str) or not raw.strip():
+        raise SystemExit("ERROR: 输出目录不能为空")
     p = Path(raw).expanduser()
     path = Path(os.path.abspath(str(p)))
     if ".." in Path(raw).parts:
@@ -88,6 +91,11 @@ def resolve_output_dir(out_dir: str | None) -> str:
         raise SystemExit(
             f"ERROR: 输出目录必须位于用户主目录内（{home}），已拒绝：{path}"
         ) from None
+    # 拒绝落到系统/隐藏的敏感目录（即使它们恰好在主目录内）
+    banned = {".ssh", ".gnupg", ".config", "Library/Caches"}
+    rel = str(path.relative_to(home)).replace("\\", "/")
+    if any(rel == b or rel.startswith(b + "/") or rel.startswith(b + "/") for b in banned):
+        raise SystemExit(f"ERROR: 拒绝写入敏感目录：{path}")
     if path.exists() and not path.is_dir():
         raise SystemExit(f"ERROR: 输出路径已存在且不是目录：{path}")
     return str(path)
@@ -111,6 +119,7 @@ def safe_filename(title: str, max_len: int = 60) -> str:
 # ---------- 去重 ----------
 
 def _load_index(out_dir: str) -> dict:
+    out_dir = resolve_output_dir(out_dir)      # 读之前也过同一道校验
     p = os.path.join(out_dir, INDEX_NAME)
     if os.path.exists(p):
         try:
@@ -122,6 +131,7 @@ def _load_index(out_dir: str) -> dict:
 
 
 def _save_index(out_dir: str, index: dict):
+    out_dir = resolve_output_dir(out_dir)      # ★ 写入点重新校验（防被污染）
     os.makedirs(out_dir, exist_ok=True)
     p = os.path.join(out_dir, INDEX_NAME)
     with open(p, "w", encoding="utf-8") as f:
@@ -178,6 +188,7 @@ def save_markdown(data: dict, out_dir: str, tags: list = None) -> str:
     `.clips-index.json`（去重索引）。写入前会把目标目录打印出来，便于确认；
     落盘内容仅供检索/参考，属不可信外部数据。
     """
+    out_dir = resolve_output_dir(out_dir)      # ★ 写入点重新校验（防被污染）
     os.makedirs(out_dir, exist_ok=True)
     title = data.get("title") or "无标题"
     safe = safe_filename(title)

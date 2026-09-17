@@ -72,3 +72,10 @@ esolve_output_dir()（拒 ..、必须落在主目录内、拒文件当目录）
 **验证**（tmp/wc_test.py，全 PASS）：语法 ✅ ｜ netguard 拒绝 11/11（含 127.0.0.1.nip.io 解析级拦截）｜ 公网放行 ✅ ｜ 真实抓取 + 体积上限生效 ✅ ｜ frontmatter 注入样本被净化、结构完好 ✅ ｜ 越界目录全拒 ✅ ｜ **端到端剪藏成功 + 溯源标记 + 去重跳过** ✅
 **产物**：docs/security-status-2026-09-17.md + docs/evidence/verify-v1.0.1-2026-09-17.json
 **待批**：发 v1.0.2 → 复扫
+
+- **2026-09-17 12:3x v1.0.2 复扫：aig 清零（error 级 SSRF 已除 ✅），skillspector 16 → 7 → 已修复待发 v1.0.3**
+  - LP1 (HIGH)：env 未声明 → 补 `allowed-tools: Env` + 声明唯读 `CLIPPER_OUTPUT_DIR`
+  - TT2 (MEDIUM)：env→open 数据流 → env 只在 `resolve_output_dir` 内读取 + **每个写入点重新校验**（`_load_index`/`_save_index`/`save_markdown`）+ 新增敏感目录拒绝（`.ssh`/`.gnupg`/`.config`/`Library/Caches`）
+  - SC1×3 / SC4×2 (LOW)：依赖改**精确钉版**（requests==2.34.2 / beautifulsoup4==4.15.0 / lxml==6.1.1；可选引擎同钉）+ 写明升级须显式改动
+  - 验证：全量回归 PASS + env 覆盖四例（内通过 / 越界拒 / 敏感目录拒 / `..` 拒）+ 包预览 10 文件
+  - 提交：`bcd2ac7`

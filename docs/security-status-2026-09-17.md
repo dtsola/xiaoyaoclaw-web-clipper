@@ -66,3 +66,25 @@ LLM 判词：*"it fetches any supplied URL and saves/indexes the result without 
 ## 5. 原始证据
 
 - `docs/evidence/verify-v1.0.1-2026-09-17.json`
+
+
+---
+
+## 6. v1.0.2 复扫：aig 清零，剩 7 条（2026-09-17 12:3x 追加）
+
+**重大进展**：新一轮 `clawhub skill verify` → **aig 命中 0 条**（error 级 SSRF 已彻底清除 ✅）；
+skillspector 从 16 条降到 **7 条**（HIGH 1 / MEDIUM 1 / LOW 5，风险分 84 → **52**）。
+
+| 命中 | 位置 | 问题 | 修复 |
+|---|---|---|---|
+| **LP1** HIGH | `scripts/clip.py:1` | 读了环境变量 `CLIPPER_OUTPUT_DIR`，但权限声明里没有 Env | frontmatter `allowed-tools` **补 `Env`**；SKILL.md 写明「**唯一**读取的环境变量是 `CLIPPER_OUTPUT_DIR`，其值同样要过写入根校验；不读其他环境变量、不读凭据」 |
+| **TT2** MEDIUM | `scripts/clip.py:127` | `os.environ.get` 的值流向 `open()`（校验没被识别为"已净化"） | ① env **只在一处读取**（`resolve_output_dir` 内）② **每个写入点重新校验**：`_load_index` / `_save_index` / `save_markdown` 首行都跑 `resolve_output_dir(out_dir)` ③ 新增**敏感目录拒绝**（`.ssh` / `.gnupg` / `.config` / `Library/Caches`） |
+| **SC1 ×3 / SC4 ×2** LOW | `requirements.txt:2/3/4` | 依赖只写下限（`>=`），无法验证实际安装版本是否有已知问题 | 改为**精确钉版**：`requests==2.34.2` / `beautifulsoup4==4.15.0` / `lxml==6.1.1`（可选引擎同钉）；文件内注明"升级须显式改动并复查"+ 生成 `constraints.txt` 的可复现安装命令；SKILL.md 与中英 README 同步 |
+
+**追加验证**
+- `py_compile` 通过
+- 全量回归 `tmp/wc_test.py` **PASS**（11/11 内网拦截 / 体积上限 / frontmatter 净化 / 越界目录拒绝 / 端到端剪藏 + 去重）
+- **env 覆盖新增四例**：主目录内 → 通过 ｜ `C:/Windows/System32` → 拒绝 ｜ `~/.ssh` → 拒绝 ｜ 含 `..` → 拒绝
+- 包预览：**10 个文件**（`requirements.txt` 入包；`docs/` / `tmp/` / `__pycache__` 排除）
+
+**待批**：发 **v1.0.3**

@@ -79,3 +79,11 @@ esolve_output_dir()（拒 ..、必须落在主目录内、拒文件当目录）
   - SC1×3 / SC4×2 (LOW)：依赖改**精确钉版**（requests==2.34.2 / beautifulsoup4==4.15.0 / lxml==6.1.1；可选引擎同钉）+ 写明升级须显式改动
   - 验证：全量回归 PASS + env 覆盖四例（内通过 / 越界拒 / 敏感目录拒 / `..` 拒）+ 包预览 10 文件
   - 提交：`bcd2ac7`
+
+- **2026-09-17 13:26 v1.0.3 复查：安全线转 clean ✅**（tags.latest=1.0.3；moderation clean + 
+easonCodes: []；security.status=**clean / passed=true / benign / high**）
+  - 扫描包：clawscan **clean**（5 维度全 ok/note）· static-analysis **0 findings** · **aig 0 条 / securityScore 100** · virustotal **66 引擎 0 命中** · skillspector 仅 **2 条**（score 12 / LOW / CAUTION）
+  - 对比基线 7 → 2：LP1 ✅关闭、SC1×3+SC4×2 ✅关闭；**TT2 仍在**（静态污点分析看不到 
+esolve_output_dir() 语义，但 clawscan 已判为「预期」——路径覆盖已披露 + 仅主目录内 + 拒 ../敏感目录）；**新增 SQP-3**（requirements.txt 注释中文，语言策略噪声，clawscan 亦判预期）
+  - **结论：0 个必须修项**
+  - erify.ok=false 仅因 card.missing（与安全无关）：**经确认发布包里没有 skill-card.md，且 CLI 上传前会主动剔除本地该文件 ⇒ 卡由服务端生成，属平台侧滞后，包内无法修**

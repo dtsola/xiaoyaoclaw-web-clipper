@@ -58,7 +58,7 @@ pip install -r requirements.txt
 ## Usage
 
 > ⚠️ **It writes local files**: clipping creates a `.md` file under `~/knowledge/clippings/` and updates the dedup index `.clips-index.json`; the content is then searchable via kb-retriever — local persistence, so please be aware before first use.
-> ⚠️ **It contacts the network**: fetching exposes ordinary request metadata (IP, UA) to the target site — inherent to clipping. http/https on 80/443 only, and public targets only (loopback, private, link-local and cloud-metadata addresses are refused).
+> ⚠️ **It contacts the network**: fetching exposes ordinary request metadata (IP, UA) to the target site — inherent to clipping. http/https on 80/443 only, and public targets only (loopback, private, link-local and cloud-metadata addresses are refused). The validated address is then **pinned for the actual TCP connection** (no DNS lookup happens while connecting, so DNS rebinding cannot redirect the request); Host header and TLS SNI still use the hostname, and certificates are still verified against it.
 > 🌐 Language is optional: Chinese by default — ask in English or another language and it answers in that language.
 
 1. Put the skill into your OpenClaw skills directory

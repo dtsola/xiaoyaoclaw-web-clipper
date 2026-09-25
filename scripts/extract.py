@@ -192,6 +192,8 @@ def fetch_html(url: str, timeout: int = 30) -> str:
     出站请求走 netguard.safe_get：只允许 http/https + 80/443、目标解析结果
     必须是公网地址（拒绝回环/私有/链路本地/云元数据/CGNAT/保留段）、重定向
     逐跳重校验、只读前 5 MB；不发送 cookie 与 Authorization。
+    校验通过后**连接地址被固定**到那个已校验 IP（连接期不再解析域名，DNS
+    重绑定无法改道；Host 与 TLS SNI 仍用域名，证书按域名校验）。
     提示：抓取会把本次访问暴露给目标站点的服务器（IP、UA 等常规请求元数据），
     这是剪藏功能的固有代价。
     """

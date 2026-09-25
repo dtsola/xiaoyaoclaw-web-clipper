@@ -87,3 +87,18 @@ easonCodes: []；security.status=**clean / passed=true / benign / high**）
 esolve_output_dir() 语义，但 clawscan 已判为「预期」——路径覆盖已披露 + 仅主目录内 + 拒 ../敏感目录）；**新增 SQP-3**（requirements.txt 注释中文，语言策略噪声，clawscan 亦判预期）
   - **结论：0 个必须修项**
   - erify.ok=false 仅因 card.missing（与安全无关）：**经确认发布包里没有 skill-card.md，且 CLI 上传前会主动剔除本地该文件 ⇒ 卡由服务端生成，属平台侧滞后，包内无法修**
+
+## 2026-09-25 11:xx v1.0.5：关闭 DNS 重绑定缺口（ClawScan v1.0.4 suspicious 的根因）
+
+- **触发**：v1.0.4 提交后 ClawScan 判 `suspicious / medium` —— *"public-network safety boundary has a DNS rebinding gap"*（static-analysis clean、SkillSpector / VirusTotal 无信号）
+- **根因**：`assert_public_url()` 只做**解析级**校验，但 `requests.get()` 发请求时会**再解析一次**域名 → 「校验的 IP」≠「连接的 IP」，存在 TOCTOU 窗口；且 `netguard.py` docstring 自己声明了这个残余风险，LLM 评审直接采信
+- **修复（连接级 IP 固定）**：`resolve_public_target()` 返回 `(URL, 已校验 IP)` → 自定义 `_PinnedIPAdapter` / `_PinnedPoolManager` / `_Pinned{HTTP,HTTPS}Connection`，TCP **直接连那个 IP 字面量**，连接期不再解析域名；Host 头与 TLS SNI 仍用域名、证书仍按域名校验；`session.trust_env=False`（禁环境代理绕过）；每跳重定向重新固定
+- **文案**：删掉 docstring 的「残余风险 / 理论上的 DNS 重绑定窗口」自述 → 改为「已关闭」；SKILL.md 网络范围、README.md / README.en.md 警示行、extract.py `fetch_html` 说明同步
+- **验证（25/25 PASS，真跑）**：`tmp/netguard_verify.py`
+  - 拒绝回归 15/15（回环 / IPv6 回环 / 私有三段 / 云元数据 / CGNAT / 基准段 / 未指定 / ULA / `127.0.0.1.nip.io` 解析级 / 内嵌凭据 / file 协议 / 非标端口）
+  - **重绑定专项（决定性）**：桩服务器 + 有状态 DNS —— 校验期解析到 `127.0.0.1`（放行）、连接期翻转；结果请求**仍打在已校验 IP**（桩返回 200），Host 头保持 `rebind.test`（坏实现会连翻转后的地址直接失败）
+  - 解析次数断言：`getaddrinfo(<伪造域名>)` 仅 1 次；TCP 连接目标 = 已校验 IP 字面量
+  - 功能回归：example.com（http/https）、ruanyifeng.com 全部 200；TLS 未放宽（self-signed.badssl.com 仍抛 SSLError）
+  - 端到端：`clip.py` 真实剪藏成功（7207 字，落盘 19,473 字节 + 去重索引）
+- **证据**：`docs/evidence/verify-v1.0.5-2026-09-25.json`
+- **待办**：GitHub + ClawHub v1.0.5 已提交 → 复扫核对 clawscan 是否转 clean

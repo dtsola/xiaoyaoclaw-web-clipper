@@ -1,0 +1,151 @@
+{
+  "title": "netguard v2 verification (web-clipper DNS-rebinding fix)",
+  "date": "2026-09-25",
+  "version": "1.0.5 (pending publish)",
+  "clawscanTrigger": "v1.0.4 verdict=suspicious/medium: public-network safety boundary has a DNS rebinding gap",
+  "fix": "connect-time IP pinning: validate -> pin the validated IP -> dial that IP literal; no DNS lookup during connect; Host header + TLS SNI keep the hostname; trust_env=False (no proxy bypass)",
+  "harness": "tmp/netguard_verify.py (25 checks) + tmp/wc_e2e_log.txt (end-to-end clip)",
+  "results": {
+    "passed": 25,
+    "total": 25,
+    "groups": {
+      "blocklist": true,
+      "pinning": true,
+      "rebind_e2e": true,
+      "live": true
+    },
+    "results": [
+      {
+        "test": "A.block.loopback literal",
+        "ok": true,
+        "detail": "目标为内网/保留地址，已拒绝：127.0.0.1"
+      },
+      {
+        "test": "A.block.resolves to loopback",
+        "ok": true,
+        "detail": "目标解析到内网/保留地址，已拒绝：127.0.0.1.nip.io -> 127.0.0.1"
+      },
+      {
+        "test": "A.block.localhost",
+        "ok": true,
+        "detail": "目标解析到内网/保留地址，已拒绝：localhost -> 127.0.0.1, ::1"
+      },
+      {
+        "test": "A.block.private 10/8",
+        "ok": true,
+        "detail": "目标为内网/保留地址，已拒绝：10.0.0.5"
+      },
+      {
+        "test": "A.block.private 192.168/16",
+        "ok": true,
+        "detail": "目标为内网/保留地址，已拒绝：192.168.1.1"
+      },
+      {
+        "test": "A.block.private 172.16/12",
+        "ok": true,
+        "detail": "目标为内网/保留地址，已拒绝：172.16.9.9"
+      },
+      {
+        "test": "A.block.cloud metadata",
+        "ok": true,
+        "detail": "目标为内网/保留地址，已拒绝：169.254.169.254"
+      },
+      {
+        "test": "A.block.CGNAT",
+        "ok": true,
+        "detail": "目标为内网/保留地址，已拒绝：100.64.0.1"
+      },
+      {
+        "test": "A.block.benchmarking",
+        "ok": true,
+        "detail": "目标为内网/保留地址，已拒绝：198.18.0.1"
+      },
+      {
+        "test": "A.block.unspecified",
+        "ok": true,
+        "detail": "目标为内网/保留地址，已拒绝：0.0.0.0"
+      },
+      {
+        "test": "A.block.IPv6 loopback",
+        "ok": true,
+        "detail": "目标为内网/保留地址，已拒绝：::1"
+      },
+      {
+        "test": "A.block.IPv6 ULA",
+        "ok": true,
+        "detail": "目标为内网/保留地址，已拒绝：fd00::1"
+      },
+      {
+        "test": "A.block.embedded credentials",
+        "ok": true,
+        "detail": "URL 不得内嵌凭据（user:pass@）"
+      },
+      {
+        "test": "A.block.file scheme",
+        "ok": true,
+        "detail": "仅允许 http/https，已拒绝：file"
+      },
+      {
+        "test": "A.block.non-standard port",
+        "ok": true,
+        "detail": "仅允许 80/443 端口，已拒绝：8080"
+      },
+      {
+        "test": "B.resolve-once",
+        "ok": true,
+        "detail": "getaddrinfo(rebind.test) calls = 1"
+      },
+      {
+        "test": "B.connect-target",
+        "ok": true,
+        "detail": "connect targets = ['93.184.216.34']"
+      },
+      {
+        "test": "B.no-internal",
+        "ok": true,
+        "detail": "never dialled the flipped address"
+      },
+      {
+        "test": "C.rebind-e2e",
+        "ok": true,
+        "detail": "status=200 len=82"
+      },
+      {
+        "test": "C.host-preserved",
+        "ok": true,
+        "detail": "Host header seen by stub = rebind.test"
+      },
+      {
+        "test": "C.never-flipped",
+        "ok": true,
+        "detail": "stub answered => connection used the validated IP, not 10.0.0.9"
+      },
+      {
+        "test": "D.live.example.com",
+        "ok": true,
+        "detail": "status=200 bytes=559"
+      },
+      {
+        "test": "D.live.example.com",
+        "ok": true,
+        "detail": "status=200 bytes=559"
+      },
+      {
+        "test": "D.live.www.ruanyifeng.com",
+        "ok": true,
+        "detail": "status=200 bytes=20626"
+      },
+      {
+        "test": "E.tls-verify",
+        "ok": true,
+        "detail": "raised SSLError (cert still verified)"
+      }
+    ]
+  },
+  "e2e_clip": {
+    "url": "https://www.ruanyifeng.com/blog/2024/01/weekly-issue-285.html",
+    "status": "ok",
+    "chars": 7207,
+    "file_bytes": 19473
+  }
+}

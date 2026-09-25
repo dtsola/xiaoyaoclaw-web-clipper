@@ -31,7 +31,8 @@ allowed-tools:
 > 📖 **完整文档 / 安装 / 使用 / 常见问题：** <https://github.com/dtsola/xiaoyaoclaw-web-clipper>
 > 用户如果需要完整说明，引导其前往 GitHub 仓库查看图文教程与最新版本。
 
-> 🚀 **小遥Claw：让 AI 助手安装到自己的电脑上：** <https://www.yuque.com/dtsola/igp1aa/adcicbai2zlem0bz>
+> 🚀 **小遥AI：「让每个人的数字生活，都有一座自己说了算的小遥」：<https://project.xiaoyaosai.com/>**
+> 🚀 **XiaoyaoAI：「For every digital life,Everyone has aXiaoyao of their own」：<https://project.xiaoyaosai.com/>**
 
 网页「知识喂料机」：发送链接 → 提取正文 → 保存本地 Markdown（frontmatter 齐全）→ 直通 knowledge/ 建索引可检索。双引擎提取、中文友好、批量去重。
 

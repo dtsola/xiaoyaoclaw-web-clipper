@@ -102,3 +102,10 @@ esolve_output_dir() 语义，但 clawscan 已判为「预期」——路径覆�
   - 端到端：`clip.py` 真实剪藏成功（7207 字，落盘 19,473 字节 + 去重索引）
 - **证据**：`docs/evidence/verify-v1.0.5-2026-09-25.json`
 - **待办**：GitHub + ClawHub v1.0.5 已提交 → 复扫核对 clawscan 是否转 clean
+- **2026-09-25 11:1x v1.0.5 复审：安全问题清零 ✅**
+  - `clawhub skill verify xiaoyaoclaw-web-clipper` → **ok=true / decision=pass / reasons=[]**；security = **clean / passed=true / verdict=benign / confidence=high**
+  - 判词：*"a disclosed web clipper that fetches user-specified public URLs and saves local Markdown files with reasonable scoping and safeguards."*
+  - aig：**securityScore 100 / 0 条**；skillspector：score 12 / LOW（**2 条，与 v1.0.3 基线持平**：TT2 路径污点=已知可接受、SQP-3 语言噪声）；moderation：clean / reasonCodes []
+  - **DNS 重绑定缺口已从判词中消失**（v1.0.4 的 suspicious 唯一根因）
+  - 元数据零变更：displayName=OpenClaw Web Clipper、topics 5 项、license=MIT-0、versions=6
+  - GitHub `8e6c85c` 已推（远端 main 一致）

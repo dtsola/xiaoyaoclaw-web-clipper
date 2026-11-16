@@ -173,6 +173,28 @@ class _SocketRegistry:
                 pass
 
 
+def _cancel_async(worker: threading.Thread, registry,_session=None, resp=None) -> None:
+    """在**后台**完成取消：shutdown 活跃 socket → 关连接 → join 掉 worker。
+
+    绝不阻塞调用方线程：清理线程自身是 daemon 且有界（join ≤ 5s），调用方
+    在超时判定的那一刻就抛错返回，不必等 socket 真的断完。
+    """
+    def _reaper():
+        if registry is not None:
+            registry.shutdown_all()
+        for obj in (resp, _session):
+            if obj is None:
+                continue
+            try:
+                obj.close()
+            except Exception:  # noqa: BLE001 - 已关闭/已断开
+                pass
+        worker.join(5.0)
+
+    r = threading.Thread(target=_reaper, daemon=True)
+    r.start()
+
+
 def _request_headers_within(session, target: str, headers: dict, deadline: float,
                             registry=None):
     """在整体时限内拿到**响应头**（请求阶段同样可能挂住）。
@@ -205,16 +227,10 @@ def _request_headers_within(session, target: str, headers: dict, deadline: float
     budget = max(0.1, deadline - time.monotonic())
     t.join(budget)
     if t.is_alive():
-        # **真正的取消**：shutdown 本次请求自己登记的 socket（连接池里有空闲连接，
-        # 但正在使用的这条只能从登记表拿到）。shutdown 后阻塞中的 recv 立即返回，
-        # worker 随即退出——再把线程 join 干净，不留后台工作。
-        if registry is not None:
-            registry.shutdown_all()
-        try:
-            session.close()
-        except Exception:  # noqa: BLE001 - 关闭失败不影响中止结论
-            pass
-        t.join(1.0)   # 给它 1s 收尾（socket 已断，正常会在毫秒级返回）
+        # **真正的取消**：shutdown 本次请求自己登记的 socket（连接池里只有空闲
+        # 连接，正在使用的这条只能从登记表拿到）。清理在后台线程完成，调用方
+        # 立即抛错返回，不等 socket 断完。
+        _cancel_async(t, registry, _session=session)
         raise BlockedTargetError(
             f"等待响应头超出整体时限（剩余预算 {budget:.1f}s），已取消并断开连接：{target}"
         )
@@ -280,7 +296,12 @@ def assert_public_url(url: str) -> str:
 # --- 连接级固定：把 TCP 连接钉死在已校验 IP 上 -------------------------------
 
 class _PinnedHTTPConnection(_Urllib3HTTPConnection):
-    """HTTP 连接：TCP 连到 pinned_ip，Host 头仍用域名。"""
+    """HTTP 连接：TCP 连到 pinned_ip，Host 头仍用域名。
+
+    socket 在 **connect() 之后**登记（而不是 _new_conn 里）——HTTPS 会在建连后
+    再做 TLS 包装，包装会转移 socket 的所有权；只有登记包装后的对象，取消时
+    才能真正 shutdown 到活跃连接。
+    """
 
     def __init__(self, *args, pinned_ip: str | None = None, registry=None, **kwargs):
         self._pinned_ip = pinned_ip
@@ -290,12 +311,15 @@ class _PinnedHTTPConnection(_Urllib3HTTPConnection):
     def _new_conn(self):
         if not self._pinned_ip:
             return super()._new_conn()
-        sock = socket.create_connection(
+        return socket.create_connection(
             (self._pinned_ip, self.port), self.timeout, self.source_address
         )
-        if self._registry is not None:
-            self._registry.add(sock)   # ★ 自己建的连接自己登记，取消时够得到
-        return sock
+
+    def connect(self):
+        super().connect()
+        sock = getattr(self, "sock", None)
+        if sock is not None and self._registry is not None:
+            self._registry.add(sock)   # ★ 登记**最终**使用的 socket
 
     def close(self):
         sock = getattr(self, "sock", None)
@@ -307,7 +331,12 @@ class _PinnedHTTPConnection(_Urllib3HTTPConnection):
 
 
 class _PinnedHTTPSConnection(_Urllib3HTTPSConnection):
-    """HTTPS 连接：TCP 连到 pinned_ip，SNI 与证书校验仍按域名（self.host）。"""
+    """HTTPS 连接：TCP 连到 pinned_ip，SNI 与证书校验仍按域名（self.host）。
+
+    ⚠️ 登记点必须在 **connect() 之后**：TLS 包装由父类在 connect 里完成，
+    包装后的 `self.sock` 是 SSLSocket；若在 _new_conn 阶段登记裸 TCP socket，
+    TLS 一包装原对象即失去对连接的掌控（shutdown 无效，取消随之失效）。
+    """
 
     def __init__(self, *args, pinned_ip: str | None = None, registry=None, **kwargs):
         self._pinned_ip = pinned_ip
@@ -317,12 +346,15 @@ class _PinnedHTTPSConnection(_Urllib3HTTPSConnection):
     def _new_conn(self):
         if not self._pinned_ip:
             return super()._new_conn()
-        sock = socket.create_connection(
+        return socket.create_connection(
             (self._pinned_ip, self.port), self.timeout, self.source_address
         )
-        if self._registry is not None:
-            self._registry.add(sock)   # ★ 同上
-        return sock
+
+    def connect(self):
+        super().connect()          # 父类在此完成 TLS 包装
+        sock = getattr(self, "sock", None)
+        if sock is not None and self._registry is not None:
+            self._registry.add(sock)   # ★ 登记包装后的 SSLSocket
 
     def close(self):
         sock = getattr(self, "sock", None)
@@ -510,16 +542,10 @@ def safe_get(
             reader.start()
             reader.join(max(0.1, deadline - time.monotonic()))
             if reader.is_alive():
-                # **真正的取消**：置取消信号（读循环下一轮即退出）+ shutdown 登记表中
-                # 正在使用的那条 socket（唤醒阻塞中的 recv）+ 清掉登记表。
-                # 随后把读线程 join 干净，不留后台工作、不占套接字。
+                # **真正的取消**：置取消信号（读循环下一轮即退出）+ 后台线程里
+                # shutdown 活跃 socket 并 join 读线程。调用方立即返回，不阻塞。
                 cancel.set()
-                registry.shutdown_all()
-                try:
-                    resp.close()
-                except Exception:  # noqa: BLE001 - 关闭失败不影响中止结论
-                    pass
-                reader.join(1.0)   # socket 已断，正常在毫秒级退出
+                _cancel_async(reader, registry, resp=resp)
                 raise BlockedTargetError(
                     f"整体请求超时（{timeout}s 总预算已用尽），已取消读体并断开连接：{target}"
                 )

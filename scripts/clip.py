@@ -106,22 +106,28 @@ def resolve_output_dir(out_dir: str | None) -> str:
         real = path.resolve()
     except OSError as e:
         raise SystemExit(f"ERROR: 无法解析输出目录的真实路径，已拒绝：{path}（{e}）") from None
+    home_real = home.resolve()
     try:
-        real.relative_to(home.resolve())
+        real.relative_to(home_real)
     except ValueError:
         raise SystemExit(
             f"ERROR: 输出目录的真实路径已越出用户主目录，已拒绝：{real}"
         ) from None
+    # ★ 敏感目录黑名单必须在**真实路径**上再查一次：
+    #   软链可以指向 ~/.ssh 这类目录，字面路径看不出来。
+    real_rel = str(real.relative_to(home_real)).replace("\\", "/")
+    if any(real_rel == b or real_rel.startswith(b + "/") for b in banned):
+        raise SystemExit(f"ERROR: 输出目录的真实路径落在敏感目录内，已拒绝：{real}")
     if real.exists() and not real.is_dir():
         raise SystemExit(f"ERROR: 输出路径已存在且不是目录：{real}")
     return str(real)
 
 
 def assert_write_target(out_dir: str, filename: str) -> str:
-    """写入前的最后一道闸门：目标文件必须在输出目录内，且**不是符号链接**。
+    """写入前的静态校验：目标文件必须在输出目录内，且**不是符号链接**。
 
-    符号链接的既有文件会让 open(...,"w") 写到别处（覆盖链接目标），
-    因此直接拒绝；目录本身已由 resolve_output_dir 解析成 real path。
+    注意：这只是**前置检查**，真正的防越界依赖写入时的独占创建 + no-follow
+    （见 write_new_file）；检查与写入之间的时间差由 O_EXCL / O_NOFOLLOW 兜住。
     """
     if os.path.sep in filename or (os.path.altsep and os.path.altsep in filename) \
             or filename in (".", ".."):
@@ -139,6 +145,42 @@ def assert_write_target(out_dir: str, filename: str) -> str:
     if target.is_symlink():
         raise SystemExit(f"ERROR: 目标是符号链接，拒绝写入（避免覆盖链接指向的文件）：{target}")
     return str(target)
+
+
+# 独占创建 + 不跟随符号链接（Windows 上 O_NOFOLLOW 不存在，只能靠 O_EXCL：
+# 目标已存在一律失败，绝不截断既有文件/链接目标）
+_O_EXCL = os.O_CREAT | os.O_EXCL | os.O_WRONLY
+_O_NOFOLLOW = getattr(os, "O_NOFOLLOW", 0)
+_O_BINARY = getattr(os, "O_BINARY", 0)
+
+
+def write_new_file(out_dir: str, filename: str, text: str, max_tries: int = 50) -> str:
+    """以**独占创建**方式写出一个新文件，遇到重名则顺延文件名重试。
+
+    为什么不用 `open(path, "w")`：那是**截断式**打开——先检查后写入之间，
+    他人把路径换成符号链接即可让写入落到别处。独占创建让这种替换必然失败
+    （O_EXCL 遇已存在即报错，O_NOFOLLOW 遇链接即报错），因此彻底消除了
+    「检查—写入」之间的竞态。
+    """
+    stem, ext = os.path.splitext(filename)
+    for attempt in range(max_tries):
+        name = filename if attempt == 0 else f"{stem}-{attempt + 1}{ext}"
+        if os.path.sep in name or name in (".", ".."):
+            raise SystemExit(f"ERROR: 非法文件名：{name}")
+        target = os.path.join(out_dir, name)
+        try:
+            fd = os.open(target, _O_EXCL | _O_NOFOLLOW | _O_BINARY, 0o600)
+        except FileExistsError:
+            continue           # 重名（含被换成软链）→ 换名重试，绝不覆盖
+        except OSError as e:
+            raise SystemExit(f"ERROR: 无法安全创建输出文件，已中止：{name}（{e}）") from None
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8", newline="") as f:
+                f.write(text)
+        except OSError as e:
+            raise SystemExit(f"ERROR: 写入失败：{name}（{e}）") from None
+        return target
+    raise SystemExit(f"ERROR: 文件名冲突过多，已中止：{filename}")
 
 
 # ---------- 文件名 ----------
@@ -177,8 +219,21 @@ def _save_index(out_dir: str, index: dict):
     # 写盘前最后一道显式闸门（taint 收敛）：目标必须在输出目录内、且不是符号链接
     if os.path.dirname(os.path.abspath(p)) != os.path.abspath(out_dir) or os.path.islink(p):
         raise SystemExit(f"ERROR: 写入目标未通过最终校验，已拒绝：{p}")
-    with open(p, "w", encoding="utf-8") as f:
+    # 原子替换：先写到同目录下的独占临时文件（O_EXCL + O_NOFOLLOW，链接无法劫持），
+    # 再用 os.replace 换上去——不会出现半截索引，替换也不会写到链接目标里
+    tmp_name = f".{INDEX_NAME}.{os.getpid()}.tmp"
+    tmp_path = os.path.join(out_dir, tmp_name)
+    try:
+        os.unlink(tmp_path)          # 仅删除同名普通/链接文件本身，不触碰链接目标
+    except FileNotFoundError:
+        pass
+    try:
+        fd = os.open(tmp_path, _O_EXCL | _O_NOFOLLOW | _O_BINARY, 0o600)
+    except OSError as e:
+        raise SystemExit(f"ERROR: 无法创建索引临时文件，已中止：{e}") from None
+    with os.fdopen(fd, "w", encoding="utf-8", newline="") as f:
         json.dump(index, f, ensure_ascii=False, indent=2)
+    os.replace(tmp_path, p)
 
 
 def _url_hash(url: str) -> str:
@@ -237,14 +292,7 @@ def save_markdown(data: dict, out_dir: str, tags: list = None) -> str:
     safe = safe_filename(title)
     date = data.get("publish_date") or data.get("clipped_at", "")[:10]
     fname = f"{datetime.now().strftime('%Y%m%d')}_{safe}.md"
-    fpath = assert_write_target(out_dir, fname)   # ★ 目标不是软链、且在输出目录内
-
-    # 重名处理：加序号
-    n = 1
-    base, ext = os.path.splitext(fpath)
-    while os.path.exists(fpath):
-        n += 1
-        fpath = f"{base}_{n}{ext}"
+    fpath = assert_write_target(out_dir, fname)   # ★ 前置校验：目标在输出目录内、非软链
 
     tags_str = ""
     if tags:
@@ -285,11 +333,8 @@ tags:{' [' + ', '.join(safe_tags) + ']' if safe_tags else ' []'}
 *由 xiaoyaoclaw-web-clipper 自动剪藏*
 """
 
-    # 写盘前最后一道显式闸门（taint 收敛）：目标必须在输出目录内、且不是符号链接
-    if os.path.dirname(os.path.abspath(fpath)) != os.path.abspath(out_dir) or os.path.islink(fpath):
-        raise SystemExit(f"ERROR: 写入目标未通过最终校验，已拒绝：{fpath}")
-    with open(fpath, "w", encoding="utf-8") as f:
-        f.write(md)
+    # 独占创建写盘：重名自动顺延，绝不截断既有文件、不跟随符号链接
+    fpath = write_new_file(out_dir, os.path.basename(fpath), md)
 
     # 更新索引
     index = _load_index(out_dir)

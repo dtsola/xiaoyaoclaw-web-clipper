@@ -174,6 +174,9 @@ def _save_index(out_dir: str, index: dict):
     out_dir = resolve_output_dir(out_dir)      # ★ 写入点重新校验（防被污染）
     os.makedirs(out_dir, exist_ok=True)
     p = assert_write_target(out_dir, INDEX_NAME)   # ★ 目标不是软链、且在输出目录内
+    # 写盘前最后一道显式闸门（taint 收敛）：目标必须在输出目录内、且不是符号链接
+    if os.path.dirname(os.path.abspath(p)) != os.path.abspath(out_dir) or os.path.islink(p):
+        raise SystemExit(f"ERROR: 写入目标未通过最终校验，已拒绝：{p}")
     with open(p, "w", encoding="utf-8") as f:
         json.dump(index, f, ensure_ascii=False, indent=2)
 
@@ -282,6 +285,9 @@ tags:{' [' + ', '.join(safe_tags) + ']' if safe_tags else ' []'}
 *由 xiaoyaoclaw-web-clipper 自动剪藏*
 """
 
+    # 写盘前最后一道显式闸门（taint 收敛）：目标必须在输出目录内、且不是符号链接
+    if os.path.dirname(os.path.abspath(fpath)) != os.path.abspath(out_dir) or os.path.islink(fpath):
+        raise SystemExit(f"ERROR: 写入目标未通过最终校验，已拒绝：{fpath}")
     with open(fpath, "w", encoding="utf-8") as f:
         f.write(md)
 

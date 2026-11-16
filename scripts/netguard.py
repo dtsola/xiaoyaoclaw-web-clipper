@@ -33,6 +33,7 @@ from __future__ import annotations
 
 import ipaddress
 import socket
+import threading
 import time
 from urllib.parse import urlparse
 
@@ -250,6 +251,11 @@ def safe_get(
         if remaining <= 0:
             raise BlockedTargetError(f"整体请求超时（{timeout}s 总预算已用尽）：{current}")
         target, pinned_ip = resolve_public_target(current)
+        # DNS 解析也算在整体预算内：解析慢也要能被时限截断
+        if time.monotonic() > deadline:
+            raise BlockedTargetError(
+                f"整体请求超时（{timeout}s 总预算已用尽，DNS 解析阶段）：{target}"
+            )
         req_headers = {"User-Agent": UA, "Accept": "*/*"}
         if headers:
             # 只允许覆盖非敏感头，避免把凭据塞进请求
@@ -281,22 +287,42 @@ def safe_get(
             # 体积上限：只取前 max_bytes 字节；同时按整体时限判定
             chunks: list[bytes] = []
             total = 0
-            for chunk in resp.iter_content(chunk_size=64 * 1024):
-                if not chunk:
-                    continue
-                total += len(chunk)
-                if total > max_bytes:
-                    chunks.append(chunk[: max_bytes - (total - len(chunk))])
-                    resp.close()
-                    raise BlockedTargetError(
-                        f"响应体超过上限 {max_bytes} 字节，已中止读取：{target}"
-                    )
+            # **看门狗**：整体 deadline 到点就断开连接。
+            # 必要性：iter_content 在攒够 chunk_size 之前是阻塞的，循环里的时限
+            # 检查在「慢速滴流」（每秒几字节）下根本轮不到执行——光靠 socket
+            # 超时也只能约束「单次无数据间隔」，无法约束请求总时长。
+            # 由独立定时器兜底，保证整体时限是真正的硬上限。
+            watchdog = threading.Timer(max(0.5, deadline - time.monotonic()), resp.close)
+            watchdog.daemon = True
+            watchdog.start()
+            try:
+                for chunk in resp.iter_content(chunk_size=16 * 1024):
+                    if not chunk:
+                        continue
+                    total += len(chunk)
+                    if total > max_bytes:
+                        chunks.append(chunk[: max_bytes - (total - len(chunk))])
+                        resp.close()
+                        raise BlockedTargetError(
+                            f"响应体超过上限 {max_bytes} 字节，已中止读取：{target}"
+                        )
+                    if time.monotonic() > deadline:
+                        resp.close()
+                        raise BlockedTargetError(
+                            f"整体请求超时（{timeout}s 总预算已用尽），已中止读取：{target}"
+                        )
+                    chunks.append(chunk)
+            except BlockedTargetError:
+                raise
+            except Exception:
+                # 看门狗断连引发的读异常 → 归因为整体超时
                 if time.monotonic() > deadline:
-                    resp.close()
                     raise BlockedTargetError(
                         f"整体请求超时（{timeout}s 总预算已用尽），已中止读取：{target}"
-                    )
-                chunks.append(chunk)
+                    ) from None
+                raise
+            finally:
+                watchdog.cancel()
             resp._content = b"".join(chunks)  # noqa: SLF001 - 供 resp.text 使用
             resp._content_consumed = True  # noqa: SLF001
             return resp

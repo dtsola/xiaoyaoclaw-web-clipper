@@ -54,6 +54,10 @@ ALLOWED_PORTS = (80, 443)
 MAX_REDIRECTS = 3
 DEFAULT_MAX_BYTES = 5 * 1024 * 1024  # 5 MB
 DEFAULT_TIMEOUT = 30
+# 单次阻塞操作的上限（秒）：连接 ≤ CONNECT_SLICE、每次读 ≤ READ_SLICE。
+# 有了它，任何一次阻塞都不会无限期占着线程与套接字；整体请求另有墙钟 deadline。
+CONNECT_SLICE = 10.0
+READ_SLICE = 10.0
 
 
 class BlockedTargetError(RuntimeError):
@@ -128,6 +132,47 @@ def _getaddrinfo_within(host: str, port: int, deadline: float | None) -> list:
     return box.get("infos", [])
 
 
+def _shutdown_session_sockets(session) -> None:
+    """尽力把会话里所有连接 socket shutdown 掉（唤醒阻塞中的 recv）。"""
+    try:
+        adapter = session.get_adapter("https://")
+        pm = getattr(adapter, "poolmanager", None)
+        for pool in list((getattr(pm, "pools", None) or {}).values()):
+            for conn in list(getattr(pool, "pool", None) or []):
+                sock = getattr(conn, "sock", None)
+                if sock is None:
+                    continue
+                try:
+                    sock.shutdown(socket.SHUT_RDWR)
+                except Exception:  # noqa: BLE001 - 已断开等情况忽略
+                    pass
+    except Exception:  # noqa: BLE001 - 取不到就退化为 session.close()
+        pass
+
+
+def _hard_cancel(resp) -> None:
+    """强制取消一次响应：**shutdown 底层 socket** 再 close。
+
+    只 close 不够——Windows 上另一个线程阻塞中的 recv 未必被唤醒，线程与
+    套接字会继续占着资源。shutdown(SHUT_RDWR) 会让对端与本地立刻收到 EOF，
+    阻塞中的 recv 随即返回错误，读线程因此能马上退出。
+    """
+    sock = None
+    try:
+        sock = resp.raw._connection.sock  # noqa: SLF001 - urllib3 内部结构
+    except Exception:  # noqa: BLE001 - 拿不到就退化为 close
+        sock = None
+    if sock is not None:
+        try:
+            sock.shutdown(socket.SHUT_RDWR)
+        except Exception:  # noqa: BLE001 - 已断开等情况忽略
+            pass
+    try:
+        resp.close()
+    except Exception:  # noqa: BLE001 - 关闭失败不影响结论
+        pass
+
+
 def _request_headers_within(session, target: str, headers: dict, deadline: float):
     """在整体时限内拿到**响应头**（请求阶段同样可能挂住）。
 
@@ -142,10 +187,13 @@ def _request_headers_within(session, target: str, headers: dict, deadline: float
 
     def _worker():
         try:
+            remain = max(1.0, deadline - time.monotonic())
             box["resp"] = session.get(
                 target,
                 headers=headers,
-                timeout=max(1, deadline - time.monotonic()),
+                # (连接超时, 读超时) 分别有界：任何一次阻塞读都到点返回，
+                # 不会靠「整体 deadline」去赌 socket 超时
+                timeout=(min(remain, CONNECT_SLICE), min(remain, READ_SLICE)),
                 allow_redirects=False,
                 stream=True,
             )
@@ -157,8 +205,10 @@ def _request_headers_within(session, target: str, headers: dict, deadline: float
     budget = max(0.1, deadline - time.monotonic())
     t.join(budget)
     if t.is_alive():
-        # 显式取消：先置取消信号，再关闭连接（解除阻塞中的读），最后中止请求
+        # 显式取消：先置取消信号，再 shutdown 底层 socket（唤醒阻塞中的 recv），
+        # 最后关闭连接——线程与套接字都不会被长期占着
         cancel.set()
+        _shutdown_session_sockets(session)
         try:
             session.close()
         except Exception:  # noqa: BLE001 - 关闭失败不影响中止结论
@@ -293,7 +343,18 @@ class _PinnedIPAdapter(HTTPAdapter):
     def init_poolmanager(self, connections, maxsize, block=False, **pool_kwargs):
         if self._total_timeout is not None:
             budget = max(1.0, float(self._total_timeout))
-            pool_kwargs["timeout"] = _Timeout(total=budget, connect=budget, read=budget)
+            # total 只约束「连接 + 响应头」阶段；对流式响应体，urllib3 的 total
+            # **不会随已耗时递减**，读超时仍是固定值 → 流式读取可能超出声明时限。
+            # 因此这里额外给 connect / read 设**独立且有界**的超时：
+            #   * connect ≤ CONNECT_SLICE：连不上就到点失败
+            #   * read    ≤ READ_SLICE   ：任何一次阻塞读都到点返回
+            # 配合 safe_get 的墙钟 deadline（读线程 join），构成「绝对期限 +
+            # 有界阻塞操作」的双保险：不会有线程/套接字长期占着。
+            pool_kwargs["timeout"] = _Timeout(
+                total=budget,
+                connect=min(budget, CONNECT_SLICE),
+                read=min(budget, READ_SLICE),
+            )
         self.poolmanager = _PinnedPoolManager(
             self._pinned_ip,
             num_pools=connections,
@@ -411,9 +472,10 @@ def safe_get(
             reader.start()
             reader.join(max(0.1, deadline - time.monotonic()))
             if reader.is_alive():
-                # 显式取消：置取消信号（读循环下一轮即退出）+ 关闭连接（解除阻塞读）
+                # 显式取消：置取消信号（读循环下一轮即退出）+ shutdown 底层 socket
+                # （唤醒阻塞中的 recv）+ 关闭连接——线程与套接字都不会被长期占着
                 cancel.set()
-                resp.close()
+                _hard_cancel(resp)
                 raise BlockedTargetError(
                     f"整体请求超时（{timeout}s 总预算已用尽），已取消读体并断开连接：{target}"
                 )

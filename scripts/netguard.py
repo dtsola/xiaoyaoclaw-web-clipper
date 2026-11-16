@@ -33,6 +33,7 @@ from __future__ import annotations
 
 import ipaddress
 import socket
+import time
 from urllib.parse import urlparse
 
 import requests
@@ -237,10 +238,17 @@ def safe_get(
       那个 IP：连接期间不发生任何域名解析，DNS 重绑定无法把请求改道
     - 不自动跟随重定向：逐跳校验 + 逐跳重新固定（最多 MAX_REDIRECTS 跳）
     - 只读前 max_bytes 字节（超限即中止，防止恶意大响应）
+    - **整体墙钟时限**：timeout 是整个请求（含所有重定向跳）的总预算，不是单次
+      socket 读超时——慢速滴流（持续小包）无法靠 socket 超时收敛，故在读循环里
+      按剩余预算判定，超时即中止
     - 只发 GET，不带 cookie / Authorization，不读环境代理
     """
+    deadline = time.monotonic() + timeout  # 整体时限：覆盖连接 + 全部重定向 + 读体
     current = url
     for hop in range(MAX_REDIRECTS + 1):
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise BlockedTargetError(f"整体请求超时（{timeout}s 总预算已用尽）：{current}")
         target, pinned_ip = resolve_public_target(current)
         req_headers = {"User-Agent": UA, "Accept": "*/*"}
         if headers:
@@ -255,7 +263,7 @@ def safe_get(
             resp = session.get(
                 target,
                 headers=req_headers,
-                timeout=timeout,
+                timeout=max(1, remaining),
                 allow_redirects=False,
                 stream=True,
             )
@@ -270,7 +278,7 @@ def safe_get(
                 current = requests.compat.urljoin(target, location)
                 continue
 
-            # 体积上限：只取前 max_bytes 字节
+            # 体积上限：只取前 max_bytes 字节；同时按整体时限判定
             chunks: list[bytes] = []
             total = 0
             for chunk in resp.iter_content(chunk_size=64 * 1024):
@@ -282,6 +290,11 @@ def safe_get(
                     resp.close()
                     raise BlockedTargetError(
                         f"响应体超过上限 {max_bytes} 字节，已中止读取：{target}"
+                    )
+                if time.monotonic() > deadline:
+                    resp.close()
+                    raise BlockedTargetError(
+                        f"整体请求超时（{timeout}s 总预算已用尽），已中止读取：{target}"
                     )
                 chunks.append(chunk)
             resp._content = b"".join(chunks)  # noqa: SLF001 - 供 resp.text 使用

@@ -75,6 +75,9 @@ def resolve_output_dir(out_dir: str | None) -> str:
     路径可能来自环境变量或命令行，属于外部输入：先展开、解析成绝对路径，
     再要求它落在用户主目录内（默认工作区知识库也在主目录下），避免被指向
     系统目录或通过 `..` 越界写入；同时拒绝把文件当目录用。
+
+    校验一律基于 **real path**（解符号链接后的真实路径）：否则输出目录本身
+    是个软链时，字面路径虽在主目录内，实际写入却落在别处（越界）。
     """
     env_override = os.environ.get(ENV_OUTPUT_DIR)   # ← 全脚本唯一读环境变量处
     raw = out_dir or env_override or str(Path.home() / DEFAULT_DIR_RELATIVE)
@@ -98,7 +101,44 @@ def resolve_output_dir(out_dir: str | None) -> str:
         raise SystemExit(f"ERROR: 拒绝写入敏感目录：{path}")
     if path.exists() and not path.is_dir():
         raise SystemExit(f"ERROR: 输出路径已存在且不是目录：{path}")
-    return str(path)
+    # real path 复核：目录本身若是软链，真实位置必须仍在主目录内
+    try:
+        real = path.resolve()
+    except OSError as e:
+        raise SystemExit(f"ERROR: 无法解析输出目录的真实路径，已拒绝：{path}（{e}）") from None
+    try:
+        real.relative_to(home.resolve())
+    except ValueError:
+        raise SystemExit(
+            f"ERROR: 输出目录的真实路径已越出用户主目录，已拒绝：{real}"
+        ) from None
+    if real.exists() and not real.is_dir():
+        raise SystemExit(f"ERROR: 输出路径已存在且不是目录：{real}")
+    return str(real)
+
+
+def assert_write_target(out_dir: str, filename: str) -> str:
+    """写入前的最后一道闸门：目标文件必须在输出目录内，且**不是符号链接**。
+
+    符号链接的既有文件会让 open(...,"w") 写到别处（覆盖链接目标），
+    因此直接拒绝；目录本身已由 resolve_output_dir 解析成 real path。
+    """
+    if os.path.sep in filename or (os.path.altsep and os.path.altsep in filename) \
+            or filename in (".", ".."):
+        raise SystemExit(f"ERROR: 非法文件名：{filename}")
+    base = Path(out_dir)
+    target = base / filename
+    # 父目录 real path 必须仍在输出目录内（防目录被换成软链）
+    try:
+        parent_real = target.parent.resolve()
+        base_real = base.resolve()
+    except OSError as e:
+        raise SystemExit(f"ERROR: 无法解析写入目标的真实路径，已拒绝：{target}（{e}）") from None
+    if parent_real != base_real:
+        raise SystemExit(f"ERROR: 写入目标越出输出目录，已拒绝：{target}")
+    if target.is_symlink():
+        raise SystemExit(f"ERROR: 目标是符号链接，拒绝写入（避免覆盖链接指向的文件）：{target}")
+    return str(target)
 
 
 # ---------- 文件名 ----------
@@ -133,7 +173,7 @@ def _load_index(out_dir: str) -> dict:
 def _save_index(out_dir: str, index: dict):
     out_dir = resolve_output_dir(out_dir)      # ★ 写入点重新校验（防被污染）
     os.makedirs(out_dir, exist_ok=True)
-    p = os.path.join(out_dir, INDEX_NAME)
+    p = assert_write_target(out_dir, INDEX_NAME)   # ★ 目标不是软链、且在输出目录内
     with open(p, "w", encoding="utf-8") as f:
         json.dump(index, f, ensure_ascii=False, indent=2)
 
@@ -194,7 +234,7 @@ def save_markdown(data: dict, out_dir: str, tags: list = None) -> str:
     safe = safe_filename(title)
     date = data.get("publish_date") or data.get("clipped_at", "")[:10]
     fname = f"{datetime.now().strftime('%Y%m%d')}_{safe}.md"
-    fpath = os.path.join(out_dir, fname)
+    fpath = assert_write_target(out_dir, fname)   # ★ 目标不是软链、且在输出目录内
 
     # 重名处理：加序号
     n = 1

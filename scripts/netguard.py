@@ -43,6 +43,7 @@ from urllib3.connection import HTTPConnection as _Urllib3HTTPConnection
 from urllib3.connection import HTTPSConnection as _Urllib3HTTPSConnection
 from urllib3.connectionpool import HTTPConnectionPool, HTTPSConnectionPool
 from urllib3.poolmanager import PoolManager
+from urllib3.util import Timeout as _Timeout
 
 UA = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
@@ -271,13 +272,22 @@ class _PinnedPoolManager(PoolManager):
 
 
 class _PinnedIPAdapter(HTTPAdapter):
-    """requests adapter：本 adapter 发出的所有连接固定到 pinned_ip。"""
+    """requests adapter：本 adapter 发出的所有连接固定到 pinned_ip。
 
-    def __init__(self, pinned_ip: str, **kwargs):
+    `total_timeout` 给出时，连接池使用 urllib3 的 `Timeout(total=...)`——
+    **传输层总期限**：urllib3 用「total 减去已耗时」推导每次读写的 socket 超时，
+    于是连阻塞中的 recv 也会在 deadline 到点被切断，请求不可能活过声明时限。
+    """
+
+    def __init__(self, pinned_ip: str, *, total_timeout: float | None = None, **kwargs):
         self._pinned_ip = pinned_ip
+        self._total_timeout = total_timeout
         super().__init__(**kwargs)
 
     def init_poolmanager(self, connections, maxsize, block=False, **pool_kwargs):
+        if self._total_timeout is not None:
+            budget = max(1.0, float(self._total_timeout))
+            pool_kwargs["timeout"] = _Timeout(total=budget, connect=budget, read=budget)
         self.poolmanager = _PinnedPoolManager(
             self._pinned_ip,
             num_pools=connections,
@@ -287,11 +297,20 @@ class _PinnedIPAdapter(HTTPAdapter):
         )
 
 
-def _pinned_session(pinned_ip: str) -> requests.Session:
-    """构造一个"出站只走 pinned_ip"的会话（不读环境代理）。"""
+def _pinned_session(pinned_ip: str, total_timeout: float | None = None) -> requests.Session:
+    """构造一个"出站只走 pinned_ip"的会话（不读环境代理）。
+
+    `total_timeout` 给出时，会话底层的 urllib3 连接池使用
+    `Timeout(total=...)`——**传输层的总期限**：urllib3 会用「total 减去已耗时」
+    推导每一次读/写的 socket 超时，于是连阻塞中的 recv 也会在 deadline 到点被
+    切断，请求不可能活过它的声明时限（否则放弃的读线程会一直占着 socket）。
+    """
     session = requests.Session()
     session.trust_env = False  # 不读 HTTP(S)_PROXY，避免代理改写目的地
-    adapter = _PinnedIPAdapter(pinned_ip)
+    if total_timeout is not None:
+        adapter = _PinnedIPAdapter(pinned_ip, total_timeout=total_timeout)
+    else:
+        adapter = _PinnedIPAdapter(pinned_ip)
     session.mount("http://", adapter)
     session.mount("https://", adapter)
     return session
@@ -335,7 +354,8 @@ def safe_get(
                     continue
                 req_headers[k] = v
 
-        session = _pinned_session(pinned_ip)
+        # 传输层总期限：socket 层面也受剩余预算约束（连阻塞中的 recv 也会被切断）
+        session = _pinned_session(pinned_ip, total_timeout=max(1.0, deadline - time.monotonic()))
         try:
             # 响应头阶段同样受整体时限约束（见 _request_headers_within）
             resp = _request_headers_within(session, target, req_headers, deadline)

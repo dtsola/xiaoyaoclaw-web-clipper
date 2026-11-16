@@ -109,3 +109,24 @@ esolve_output_dir() 语义，但 clawscan 已判为「预期」——路径覆�
   - **DNS 重绑定缺口已从判词中消失**（v1.0.4 的 suspicious 唯一根因）
   - 元数据零变更：displayName=OpenClaw Web Clipper、topics 5 项、license=MIT-0、versions=6
   - GitHub `8e6c85c` 已推（远端 main 一致）
+
+## 2026-11-16 v1.0.9 → v1.0.18：ClawScan 新引擎（v2.4.27）下的 10 轮安全整改
+
+- **触发**：banner 换版后重新发布，ClawScan 引擎已升级，v1.0.9 被判 `suspicious`（skillspector 25 / LLM suspicious），判词指向两类：**慢速滴流可超出宣称的 30s 时限**、**写盘点可借符号链接越界**
+- **整改过程（逐轮按判词的 remediation 收敛）**：
+  1. **整体墙钟 deadline**：DNS 解析、响应头、响应体三阶段各自进守护线程，主线程按剩余预算等待
+  2. **DNS 有界**：`socket.getaddrinfo` 无超时参数 → 放守护线程 + 剩余预算 join（`_getaddrinfo_within`）
+  3. **响应头有界**：`session.get(stream=True)` 阻塞到响应头到齐 → 同样 worker + join（`_request_headers_within`）
+  4. **传输层期限**：urllib3 `Timeout(total=…)` + connect ≤10s / read ≤10s 独立上限（`total` **对流式响应体不随已耗时递减**，不能当绝对期限）
+  5. **真取消（第一版，未通过）**：置 cancel 事件 + 关闭 session —— 判词指出 **cancel 事件从未被 worker 检查**、**连接池里只有空闲连接够不到活跃连接**
+  6. **真取消（第二版，通过）**：自建 `_SocketRegistry`，建连时登记 socket；超时对**登记中的活跃 socket** `shutdown(SHUT_RDWR)` + 后台清理线程 join worker（不阻塞调用方）
+  7. **登记点修正（关键）**：`_new_conn()` 里登记的是**裸 TCP socket**，TLS 包装会转移所有权 → 判词指出登记对象已无法 shutdown 活跃连接；改为在 **`connect()` 之后**登记（urllib3 2.7 的 TLS 包装确实在 `connect()` 内完成），实测登记对象类型 = `SSLSocket`
+  8. **写盘独占创建**：`open(path,"w")` 是截断式 + 检查与写入分离 → 改 `O_CREAT|O_EXCL|O_NOFOLLOW`，重名顺延（`a.md` → `a-2.md`），索引先写独占临时文件再 `os.replace` 原子替换
+  9. **敏感目录黑名单在 real path 上复核**：软链可指向 `~/.ssh` 而字面路径看不出来
+  10. **文档同步**：SKILL.md 网络范围 / 写入根两段改写为与实现一致的措辞
+- **验证（全部真跑）**：
+  - 慢速滴流（HTTP 明文）端到端：响应头 3.0s、响应体 3.0s（预算 3s），**无残留线程** → `tmp/test_slowdrip.py`
+  - 本地自签证书 HTTPS：握手正常 200、**登记对象 = SSLSocket**、慢速 HTTPS 3.0s 收敛 → `tmp/test_https_tls.py`
+  - 写盘 5 项：正常写 / 重名顺延不覆盖 / 软链目标未写穿 / 索引原子替换 / 软链指 `~/.ssh` 被拒 → `tmp/test_webclipper_writes.py`
+- **结果**：**v1.0.18 `security.status = clean`**，skillspector `issueCount=0`（score 0）、LLM `clean`；`skill verify` 仅剩 `card.missing`（平台侧生成，与安全无关，与 usage-report 同现象）
+- **可复用教训**：①「取消」必须能触达**正在使用**的连接 —— 连接池里没有它，必须自己登记；②HTTPS 下**登记点必须晚于 TLS 包装**；③`Timeout(total=)` 对**流式响应体**不是绝对期限；④写盘一律 **O_EXCL|O_NOFOLLOW**，不要「先检查再 `open(...,"w")`」；⑤黑名单/边界校验必须在 **real path** 上做，且每个 `except` 都要避免被判「僵尸代码」

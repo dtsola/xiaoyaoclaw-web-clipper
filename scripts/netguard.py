@@ -95,11 +95,82 @@ def _pick_connect_ip(addresses: list[str]) -> str:
     return (v4 or addresses)[0]
 
 
-def resolve_public_target(url: str) -> tuple[str, str]:
+def _getaddrinfo_within(host: str, port: int, deadline: float | None) -> list:
+    """在整体时限内完成 DNS 解析。
+
+    `socket.getaddrinfo` 本身**没有超时参数**，系统解析器在慢 DNS / 黑洞
+    场景下可以挂住几十秒（远超整体时限）。这里放到守护线程里跑，并用剩余
+    预算 join：到点仍未返回就中止请求（线程是 daemon，不阻塞退出）。
+    """
+    if deadline is None:
+        return socket.getaddrinfo(host, port, proto=socket.IPPROTO_TCP)
+
+    box: dict = {}
+
+    def _worker():
+        try:
+            box["infos"] = socket.getaddrinfo(host, port, proto=socket.IPPROTO_TCP)
+        except BaseException as exc:  # noqa: BLE001 - 转发给调用方处理
+            box["err"] = exc
+
+    t = threading.Thread(target=_worker, daemon=True)
+    t.start()
+    budget = max(0.1, deadline - time.monotonic())
+    t.join(budget)
+    if t.is_alive():
+        raise BlockedTargetError(f"DNS 解析超出整体时限（剩余预算 {budget:.1f}s），已中止：{host}")
+    if "err" in box:
+        raise box["err"]
+    return box.get("infos", [])
+
+
+def _request_headers_within(session, target: str, headers: dict, deadline: float):
+    """在整体时限内拿到**响应头**（请求阶段同样可能挂住）。
+
+    `session.get(stream=True)` 会阻塞到响应头到齐才返回；对端若慢速滴流响应头
+    （每次只吐几个字节），socket 读超时管不住——它只约束「单次无数据间隔」。
+    这里把请求放进守护线程，用剩余预算 join；到点仍未拿到响应头就强制关闭
+    session（连同 socket），并中止整个请求。
+    """
+    box: dict = {}
+
+    def _worker():
+        try:
+            box["resp"] = session.get(
+                target,
+                headers=headers,
+                timeout=max(1, deadline - time.monotonic()),
+                allow_redirects=False,
+                stream=True,
+            )
+        except BaseException as exc:  # noqa: BLE001 - 转发给调用方处理
+            box["err"] = exc
+
+    t = threading.Thread(target=_worker, daemon=True)
+    t.start()
+    budget = max(0.1, deadline - time.monotonic())
+    t.join(budget)
+    if t.is_alive():
+        # 强制断开：关闭 session 会关掉底层连接，worker 随即退出
+        try:
+            session.close()
+        except Exception:  # noqa: BLE001 - 关闭失败不影响中止结论
+            pass
+        raise BlockedTargetError(
+            f"等待响应头超出整体时限（剩余预算 {budget:.1f}s），已中止：{target}"
+        )
+    if "err" in box:
+        raise box["err"]
+    return box.get("resp")
+
+
+def resolve_public_target(url: str, deadline: float | None = None) -> tuple[str, str]:
     """校验目标：协议 / 凭据 / 端口 / 解析结果必须全为公网地址。
 
     返回 `(规范化 URL, 用于连接的 IP)` —— 第二个值是**唯一**允许连接的地址，
     调用方必须把它交给连接级固定使用，不得再次解析域名。
+
+    `deadline`（`time.monotonic()` 基准）给定时，DNS 解析也受该时限约束。
     """
     try:
         parsed = urlparse(url)
@@ -128,7 +199,7 @@ def resolve_public_target(url: str) -> tuple[str, str]:
 
     # 域名：解析出的每一个地址都必须公网；只取一个用于固定连接
     try:
-        infos = socket.getaddrinfo(host, port, proto=socket.IPPROTO_TCP)
+        infos = _getaddrinfo_within(host, port, deadline)
     except socket.gaierror as exc:
         raise BlockedTargetError(f"DNS 解析失败：{host}") from exc
     addresses = sorted({info[4][0] for info in infos})
@@ -250,7 +321,7 @@ def safe_get(
         remaining = deadline - time.monotonic()
         if remaining <= 0:
             raise BlockedTargetError(f"整体请求超时（{timeout}s 总预算已用尽）：{current}")
-        target, pinned_ip = resolve_public_target(current)
+        target, pinned_ip = resolve_public_target(current, deadline=deadline)
         # DNS 解析也算在整体预算内：解析慢也要能被时限截断
         if time.monotonic() > deadline:
             raise BlockedTargetError(
@@ -284,45 +355,52 @@ def safe_get(
                 current = requests.compat.urljoin(target, location)
                 continue
 
-            # 体积上限：只取前 max_bytes 字节；同时按整体时限判定
-            chunks: list[bytes] = []
-            total = 0
-            # **看门狗**：整体 deadline 到点就断开连接。
-            # 必要性：iter_content 在攒够 chunk_size 之前是阻塞的，循环里的时限
-            # 检查在「慢速滴流」（每秒几字节）下根本轮不到执行——光靠 socket
-            # 超时也只能约束「单次无数据间隔」，无法约束请求总时长。
-            # 由独立定时器兜底，保证整体时限是真正的硬上限。
-            watchdog = threading.Timer(max(0.5, deadline - time.monotonic()), resp.close)
-            watchdog.daemon = True
-            watchdog.start()
-            try:
-                for chunk in resp.iter_content(chunk_size=16 * 1024):
-                    if not chunk:
-                        continue
-                    total += len(chunk)
-                    if total > max_bytes:
-                        chunks.append(chunk[: max_bytes - (total - len(chunk))])
-                        resp.close()
-                        raise BlockedTargetError(
-                            f"响应体超过上限 {max_bytes} 字节，已中止读取：{target}"
-                        )
-                    if time.monotonic() > deadline:
-                        resp.close()
-                        raise BlockedTargetError(
-                            f"整体请求超时（{timeout}s 总预算已用尽），已中止读取：{target}"
-                        )
-                    chunks.append(chunk)
-            except BlockedTargetError:
-                raise
-            except Exception:
-                # 看门狗断连引发的读异常 → 归因为整体超时
+            # 读体放到独立线程里跑，主线程按整体 deadline 等它 —— 这才是真硬上限。
+            # 为什么必须这样：
+            #   * iter_content 在攒够 chunk_size 之前是**阻塞**的，循环里的时限检查
+            #     在「慢速滴流」（每秒几字节）下根本轮不到执行；
+            #   * socket 超时只约束「单次无数据间隔」，约束不了请求总时长；
+            #   * 关连接也未必能唤醒阻塞中的 recv（Windows 上尤其如此）。
+            # 于是：读线程负责体积上限与逐块时限检查，主线程只负责「最多等多久」。
+            state: dict = {"chunks": [], "total": 0, "error": None}
+
+            def _read_body():
+                try:
+                    for chunk in resp.iter_content(chunk_size=16 * 1024):
+                        if not chunk:
+                            continue
+                        state["total"] += len(chunk)
+                        if state["total"] > max_bytes:
+                            raise BlockedTargetError(
+                                f"响应体超过上限 {max_bytes} 字节，已中止读取：{target}"
+                            )
+                        if time.monotonic() > deadline:
+                            raise BlockedTargetError(
+                                f"整体请求超时（{timeout}s 总预算已用尽），已中止读取：{target}"
+                            )
+                        state["chunks"].append(chunk)
+                except Exception as e:  # noqa: BLE001 - 统一交给主线程判定
+                    state["error"] = e
+
+            reader = threading.Thread(target=_read_body, daemon=True)
+            reader.start()
+            reader.join(max(0.1, deadline - time.monotonic()))
+            if reader.is_alive():
+                # 超时：放弃这次读（线程是 daemon，不会拖住进程退出）
+                resp.close()
+                raise BlockedTargetError(
+                    f"整体请求超时（{timeout}s 总预算已用尽），已中止读取：{target}"
+                )
+            if state["error"] is not None:
+                err = state["error"]
+                if isinstance(err, BlockedTargetError):
+                    raise err
                 if time.monotonic() > deadline:
                     raise BlockedTargetError(
                         f"整体请求超时（{timeout}s 总预算已用尽），已中止读取：{target}"
                     ) from None
-                raise
-            finally:
-                watchdog.cancel()
+                raise err
+            chunks: list[bytes] = state["chunks"]
             resp._content = b"".join(chunks)  # noqa: SLF001 - 供 resp.text 使用
             resp._content_consumed = True  # noqa: SLF001
             return resp

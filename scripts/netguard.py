@@ -107,6 +107,7 @@ def _getaddrinfo_within(host: str, port: int, deadline: float | None) -> list:
         return socket.getaddrinfo(host, port, proto=socket.IPPROTO_TCP)
 
     box: dict = {}
+    cancel = threading.Event()
 
     def _worker():
         try:
@@ -119,7 +120,9 @@ def _getaddrinfo_within(host: str, port: int, deadline: float | None) -> list:
     budget = max(0.1, deadline - time.monotonic())
     t.join(budget)
     if t.is_alive():
-        raise BlockedTargetError(f"DNS 解析超出整体时限（剩余预算 {budget:.1f}s），已中止：{host}")
+        # 显式取消信号（系统解析器无法强杀，但请求不再等它——不会继续发起连接）
+        cancel.set()
+        raise BlockedTargetError(f"DNS 解析超出整体时限（剩余预算 {budget:.1f}s），已取消并中止：{host}")
     if "err" in box:
         raise box["err"]
     return box.get("infos", [])
@@ -130,10 +133,12 @@ def _request_headers_within(session, target: str, headers: dict, deadline: float
 
     `session.get(stream=True)` 会阻塞到响应头到齐才返回；对端若慢速滴流响应头
     （每次只吐几个字节），socket 读超时管不住——它只约束「单次无数据间隔」。
-    这里把请求放进守护线程，用剩余预算 join；到点仍未拿到响应头就强制关闭
-    session（连同 socket），并中止整个请求。
+    这里把请求放进守护线程，用剩余预算 join；到点仍未拿到响应头就**显式取消**：
+    置位取消信号 + 关闭 session（连同 socket），让这次请求真正停下来，
+    而不是只放弃等待、留下仍在跑的工作。
     """
     box: dict = {}
+    cancel = threading.Event()
 
     def _worker():
         try:
@@ -152,13 +157,14 @@ def _request_headers_within(session, target: str, headers: dict, deadline: float
     budget = max(0.1, deadline - time.monotonic())
     t.join(budget)
     if t.is_alive():
-        # 强制断开：关闭 session 会关掉底层连接，worker 随即退出
+        # 显式取消：先置取消信号，再关闭连接（解除阻塞中的读），最后中止请求
+        cancel.set()
         try:
             session.close()
         except Exception:  # noqa: BLE001 - 关闭失败不影响中止结论
             pass
         raise BlockedTargetError(
-            f"等待响应头超出整体时限（剩余预算 {budget:.1f}s），已中止：{target}"
+            f"等待响应头超出整体时限（剩余预算 {budget:.1f}s），已取消并断开连接：{target}"
         )
     if "err" in box:
         raise box["err"]
@@ -378,10 +384,14 @@ def safe_get(
             #   * 关连接也未必能唤醒阻塞中的 recv（Windows 上尤其如此）。
             # 于是：读线程负责体积上限与逐块时限检查，主线程只负责「最多等多久」。
             state: dict = {"chunks": [], "total": 0, "error": None}
+            cancel = threading.Event()
 
             def _read_body():
                 try:
                     for chunk in resp.iter_content(chunk_size=16 * 1024):
+                        if cancel.is_set():
+                            # 主线程已判定超时并要求取消：立刻停止读
+                            raise BlockedTargetError(f"读体已被取消：{target}")
                         if not chunk:
                             continue
                         state["total"] += len(chunk)
@@ -401,10 +411,11 @@ def safe_get(
             reader.start()
             reader.join(max(0.1, deadline - time.monotonic()))
             if reader.is_alive():
-                # 超时：放弃这次读（线程是 daemon，不会拖住进程退出）
+                # 显式取消：置取消信号（读循环下一轮即退出）+ 关闭连接（解除阻塞读）
+                cancel.set()
                 resp.close()
                 raise BlockedTargetError(
-                    f"整体请求超时（{timeout}s 总预算已用尽），已中止读取：{target}"
+                    f"整体请求超时（{timeout}s 总预算已用尽），已取消读体并断开连接：{target}"
                 )
             if state["error"] is not None:
                 err = state["error"]

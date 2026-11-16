@@ -337,13 +337,8 @@ def safe_get(
 
         session = _pinned_session(pinned_ip)
         try:
-            resp = session.get(
-                target,
-                headers=req_headers,
-                timeout=max(1, remaining),
-                allow_redirects=False,
-                stream=True,
-            )
+            # 响应头阶段同样受整体时限约束（见 _request_headers_within）
+            resp = _request_headers_within(session, target, req_headers, deadline)
 
             if resp.status_code in (301, 302, 303, 307, 308):
                 location = resp.headers.get("Location")

@@ -132,58 +132,58 @@ def _getaddrinfo_within(host: str, port: int, deadline: float | None) -> list:
     return box.get("infos", [])
 
 
-def _shutdown_session_sockets(session) -> None:
-    """尽力把会话里所有连接 socket shutdown 掉（唤醒阻塞中的 recv）。"""
-    try:
-        adapter = session.get_adapter("https://")
-        pm = getattr(adapter, "poolmanager", None)
-        for pool in list((getattr(pm, "pools", None) or {}).values()):
-            for conn in list(getattr(pool, "pool", None) or []):
-                sock = getattr(conn, "sock", None)
-                if sock is None:
-                    continue
-                try:
-                    sock.shutdown(socket.SHUT_RDWR)
-                except Exception:  # noqa: BLE001 - 已断开等情况忽略
-                    pass
-    except Exception:  # noqa: BLE001 - 取不到就退化为 session.close()
-        pass
+class _SocketRegistry:
+    """登记本次请求自己创建的每一个 socket，取消时主动 shutdown。
 
-
-def _hard_cancel(resp) -> None:
-    """强制取消一次响应：**shutdown 底层 socket** 再 close。
-
-    只 close 不够——Windows 上另一个线程阻塞中的 recv 未必被唤醒，线程与
-    套接字会继续占着资源。shutdown(SHUT_RDWR) 会让对端与本地立刻收到 EOF，
-    阻塞中的 recv 随即返回错误，读线程因此能马上退出。
+    为什么不靠连接池：池里只放**空闲**连接，正在使用的那条已被 checkout 出去，
+    迭代池子根本拿不到它（这正是「取消够不到活跃连接」的根因）。因此在建连处
+    登记 socket 对象——取消时直接对它 `shutdown(SHUT_RDWR)`：对端立即收到
+    EOF，本端阻塞中的 recv 随即返回，线程与套接字都会被释放。
     """
-    sock = None
-    try:
-        sock = resp.raw._connection.sock  # noqa: SLF001 - urllib3 内部结构
-    except Exception:  # noqa: BLE001 - 拿不到就退化为 close
-        sock = None
-    if sock is not None:
-        try:
-            sock.shutdown(socket.SHUT_RDWR)
-        except Exception:  # noqa: BLE001 - 已断开等情况忽略
-            pass
-    try:
-        resp.close()
-    except Exception:  # noqa: BLE001 - 关闭失败不影响结论
-        pass
+
+    def __init__(self):
+        self._socks: list = []
+        self._lock = threading.Lock()
+
+    def add(self, sock):
+        with self._lock:
+            self._socks.append(sock)
+        return sock
+
+    def discard(self, sock) -> None:
+        with self._lock:
+            try:
+                self._socks.remove(sock)
+            except ValueError:
+                pass
+
+    def shutdown_all(self) -> None:
+        """对登记过的所有 socket 做 shutdown + close（幂等，重复调用安全）。"""
+        with self._lock:
+            socks = list(self._socks)
+            self._socks.clear()
+        for s in socks:
+            try:
+                s.shutdown(socket.SHUT_RDWR)
+            except Exception:  # noqa: BLE001 - 已断开/已关闭等情况忽略
+                pass
+            try:
+                s.close()
+            except Exception:  # noqa: BLE001 - 同上
+                pass
 
 
-def _request_headers_within(session, target: str, headers: dict, deadline: float):
+def _request_headers_within(session, target: str, headers: dict, deadline: float,
+                            registry=None):
     """在整体时限内拿到**响应头**（请求阶段同样可能挂住）。
 
     `session.get(stream=True)` 会阻塞到响应头到齐才返回；对端若慢速滴流响应头
     （每次只吐几个字节），socket 读超时管不住——它只约束「单次无数据间隔」。
-    这里把请求放进守护线程，用剩余预算 join；到点仍未拿到响应头就**显式取消**：
-    置位取消信号 + 关闭 session（连同 socket），让这次请求真正停下来，
-    而不是只放弃等待、留下仍在跑的工作。
+    这里把请求放进守护线程，用剩余预算 join；到点仍未拿到响应头就对登记表中
+    **正在使用的 socket** 做 shutdown，让阻塞中的 recv 立刻返回、worker 退出，
+    再把线程 join 干净——不是只放弃等待、留下仍在跑的工作。
     """
     box: dict = {}
-    cancel = threading.Event()
 
     def _worker():
         try:
@@ -205,14 +205,16 @@ def _request_headers_within(session, target: str, headers: dict, deadline: float
     budget = max(0.1, deadline - time.monotonic())
     t.join(budget)
     if t.is_alive():
-        # 显式取消：先置取消信号，再 shutdown 底层 socket（唤醒阻塞中的 recv），
-        # 最后关闭连接——线程与套接字都不会被长期占着
-        cancel.set()
-        _shutdown_session_sockets(session)
+        # **真正的取消**：shutdown 本次请求自己登记的 socket（连接池里有空闲连接，
+        # 但正在使用的这条只能从登记表拿到）。shutdown 后阻塞中的 recv 立即返回，
+        # worker 随即退出——再把线程 join 干净，不留后台工作。
+        if registry is not None:
+            registry.shutdown_all()
         try:
             session.close()
         except Exception:  # noqa: BLE001 - 关闭失败不影响中止结论
             pass
+        t.join(1.0)   # 给它 1s 收尾（socket 已断，正常会在毫秒级返回）
         raise BlockedTargetError(
             f"等待响应头超出整体时限（剩余预算 {budget:.1f}s），已取消并断开连接：{target}"
         )
@@ -280,38 +282,63 @@ def assert_public_url(url: str) -> str:
 class _PinnedHTTPConnection(_Urllib3HTTPConnection):
     """HTTP 连接：TCP 连到 pinned_ip，Host 头仍用域名。"""
 
-    def __init__(self, *args, pinned_ip: str | None = None, **kwargs):
+    def __init__(self, *args, pinned_ip: str | None = None, registry=None, **kwargs):
         self._pinned_ip = pinned_ip
+        self._registry = registry
         super().__init__(*args, **kwargs)
 
     def _new_conn(self):
         if not self._pinned_ip:
             return super()._new_conn()
-        return socket.create_connection(
+        sock = socket.create_connection(
             (self._pinned_ip, self.port), self.timeout, self.source_address
         )
+        if self._registry is not None:
+            self._registry.add(sock)   # ★ 自己建的连接自己登记，取消时够得到
+        return sock
+
+    def close(self):
+        sock = getattr(self, "sock", None)
+        try:
+            super().close()
+        finally:
+            if sock is not None and self._registry is not None:
+                self._registry.discard(sock)
 
 
 class _PinnedHTTPSConnection(_Urllib3HTTPSConnection):
     """HTTPS 连接：TCP 连到 pinned_ip，SNI 与证书校验仍按域名（self.host）。"""
 
-    def __init__(self, *args, pinned_ip: str | None = None, **kwargs):
+    def __init__(self, *args, pinned_ip: str | None = None, registry=None, **kwargs):
         self._pinned_ip = pinned_ip
+        self._registry = registry
         super().__init__(*args, **kwargs)
 
     def _new_conn(self):
         if not self._pinned_ip:
             return super()._new_conn()
-        return socket.create_connection(
+        sock = socket.create_connection(
             (self._pinned_ip, self.port), self.timeout, self.source_address
         )
+        if self._registry is not None:
+            self._registry.add(sock)   # ★ 同上
+        return sock
+
+    def close(self):
+        sock = getattr(self, "sock", None)
+        try:
+            super().close()
+        finally:
+            if sock is not None and self._registry is not None:
+                self._registry.discard(sock)
 
 
 class _PinnedPoolManager(PoolManager):
-    """把 pinned_ip 注入每个连接池，保证该池内的连接全部固定到它。"""
+    """把 pinned_ip（及 socket 登记表）注入每个连接池。"""
 
-    def __init__(self, pinned_ip: str, **kwargs):
+    def __init__(self, pinned_ip: str, *, registry=None, **kwargs):
         self._pinned_ip = pinned_ip
+        self._registry = registry
         super().__init__(**kwargs)
 
     def _new_pool(self, scheme, host, port, request_context=None):
@@ -323,6 +350,7 @@ class _PinnedPoolManager(PoolManager):
         if isinstance(pool, (HTTPConnectionPool, HTTPSConnectionPool)):
             conn_kw = dict(getattr(pool, "conn_kw", None) or {})
             conn_kw["pinned_ip"] = self._pinned_ip
+            conn_kw["registry"] = self._registry   # ★ 每个连接都拿到同一张登记表
             pool.conn_kw = conn_kw
         return pool
 
@@ -335,9 +363,11 @@ class _PinnedIPAdapter(HTTPAdapter):
     于是连阻塞中的 recv 也会在 deadline 到点被切断，请求不可能活过声明时限。
     """
 
-    def __init__(self, pinned_ip: str, *, total_timeout: float | None = None, **kwargs):
+    def __init__(self, pinned_ip: str, *, total_timeout: float | None = None,
+                 registry=None, **kwargs):
         self._pinned_ip = pinned_ip
         self._total_timeout = total_timeout
+        self._registry = registry
         super().__init__(**kwargs)
 
     def init_poolmanager(self, connections, maxsize, block=False, **pool_kwargs):
@@ -357,6 +387,7 @@ class _PinnedIPAdapter(HTTPAdapter):
             )
         self.poolmanager = _PinnedPoolManager(
             self._pinned_ip,
+            registry=self._registry,
             num_pools=connections,
             maxsize=maxsize,
             block=block,
@@ -364,20 +395,22 @@ class _PinnedIPAdapter(HTTPAdapter):
         )
 
 
-def _pinned_session(pinned_ip: str, total_timeout: float | None = None) -> requests.Session:
+def _pinned_session(pinned_ip: str, total_timeout: float | None = None,
+                    registry=None) -> requests.Session:
     """构造一个"出站只走 pinned_ip"的会话（不读环境代理）。
 
-    `total_timeout` 给出时，会话底层的 urllib3 连接池使用
-    `Timeout(total=...)`——**传输层的总期限**：urllib3 会用「total 减去已耗时」
-    推导每一次读/写的 socket 超时，于是连阻塞中的 recv 也会在 deadline 到点被
-    切断，请求不可能活过它的声明时限（否则放弃的读线程会一直占着 socket）。
+    `total_timeout` 给出时，连接池使用 `Timeout(total=..., connect=..., read=...)`：
+    total 约束传输层总期限，connect / read 各有独立上限（任何一次阻塞都有界）。
+
+    `registry` 给出时，本会话创建的每条连接都会把 socket 登记进去——取消时
+    可以精确 shutdown **正在使用**的那条连接（连接池里只有空闲连接，够不到它）。
     """
     session = requests.Session()
     session.trust_env = False  # 不读 HTTP(S)_PROXY，避免代理改写目的地
     if total_timeout is not None:
-        adapter = _PinnedIPAdapter(pinned_ip, total_timeout=total_timeout)
+        adapter = _PinnedIPAdapter(pinned_ip, total_timeout=total_timeout, registry=registry)
     else:
-        adapter = _PinnedIPAdapter(pinned_ip)
+        adapter = _PinnedIPAdapter(pinned_ip, registry=registry)
     session.mount("http://", adapter)
     session.mount("https://", adapter)
     return session
@@ -402,6 +435,8 @@ def safe_get(
     - 只发 GET，不带 cookie / Authorization，不读环境代理
     """
     deadline = time.monotonic() + timeout  # 整体时限：覆盖连接 + 全部重定向 + 读体
+    # 每条连接创建时登记 socket；取消时能精确 shutdown **正在使用**的那条
+    registry = _SocketRegistry()
     current = url
     for hop in range(MAX_REDIRECTS + 1):
         remaining = deadline - time.monotonic()
@@ -422,10 +457,13 @@ def safe_get(
                 req_headers[k] = v
 
         # 传输层总期限：socket 层面也受剩余预算约束（连阻塞中的 recv 也会被切断）
-        session = _pinned_session(pinned_ip, total_timeout=max(1.0, deadline - time.monotonic()))
+        session = _pinned_session(pinned_ip,
+                                  total_timeout=max(1.0, deadline - time.monotonic()),
+                                  registry=registry)
         try:
             # 响应头阶段同样受整体时限约束（见 _request_headers_within）
-            resp = _request_headers_within(session, target, req_headers, deadline)
+            resp = _request_headers_within(session, target, req_headers, deadline,
+                                           registry=registry)
 
             if resp.status_code in (301, 302, 303, 307, 308):
                 location = resp.headers.get("Location")
@@ -472,10 +510,16 @@ def safe_get(
             reader.start()
             reader.join(max(0.1, deadline - time.monotonic()))
             if reader.is_alive():
-                # 显式取消：置取消信号（读循环下一轮即退出）+ shutdown 底层 socket
-                # （唤醒阻塞中的 recv）+ 关闭连接——线程与套接字都不会被长期占着
+                # **真正的取消**：置取消信号（读循环下一轮即退出）+ shutdown 登记表中
+                # 正在使用的那条 socket（唤醒阻塞中的 recv）+ 清掉登记表。
+                # 随后把读线程 join 干净，不留后台工作、不占套接字。
                 cancel.set()
-                _hard_cancel(resp)
+                registry.shutdown_all()
+                try:
+                    resp.close()
+                except Exception:  # noqa: BLE001 - 关闭失败不影响中止结论
+                    pass
+                reader.join(1.0)   # socket 已断，正常在毫秒级退出
                 raise BlockedTargetError(
                     f"整体请求超时（{timeout}s 总预算已用尽），已取消读体并断开连接：{target}"
                 )
